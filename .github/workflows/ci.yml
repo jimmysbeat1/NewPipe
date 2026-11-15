@@ -20,6 +20,8 @@ on:
     branches:
       - dev
       - master
+      - 'claude/**'
+      - 'feature/**'
     paths-ignore:
       - 'README.md'
       - 'doc/**'
@@ -54,14 +56,46 @@ jobs:
           distribution: "temurin"
           cache: 'gradle'
 
-      - name: Build debug APK and run jvm tests
+      # Optional: sign the APK with your own key so that successive builds can update each
+      # other. Configure the four PIPEHOME_* repository secrets described in doc/pipehome.md.
+      # Without them the APK is signed with a throwaway debug key.
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PIPEHOME_KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pipehome.jks"
+          echo "PIPEHOME_KEYSTORE_FILE=$RUNNER_TEMP/pipehome.jks" >> "$GITHUB_ENV"
+
+      - name: Build APK, run lint and jvm tests
+        env:
+          PIPEHOME_KEYSTORE_PASSWORD: ${{ secrets.PIPEHOME_KEYSTORE_PASSWORD }}
+          PIPEHOME_KEY_ALIAS: ${{ secrets.PIPEHOME_KEY_ALIAS }}
+          PIPEHOME_KEY_PASSWORD: ${{ secrets.PIPEHOME_KEY_PASSWORD }}
         run: ./gradlew assembleContinuous lintContinuous testDebugUnitTest --stacktrace -DskipFormatKtlint
+
+      - name: Rename APK
+        run: |
+          VERSION_NAME="$(jq -r ".elements[0].versionName" app/build/outputs/apk/continuous/output-metadata.json)"
+          mv app/build/outputs/apk/continuous/*.apk "app/build/outputs/apk/continuous/PipeHome_v${VERSION_NAME}_${GITHUB_SHA::7}.apk"
+          rm -f "$RUNNER_TEMP/pipehome.jks"
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: app
+          name: PipeHome-apk
           path: app/build/outputs/apk/continuous/*.apk
+          if-no-files-found: error
+
+      - name: Upload test and lint reports
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reports
+          path: |
+            app/build/reports/**
+            shared/build/reports/**
+          if-no-files-found: ignore
 
   test-android:
     runs-on: ubuntu-latest

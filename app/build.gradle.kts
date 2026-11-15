@@ -18,14 +18,9 @@ plugins {
     checkstyle
 }
 
-val gitWorkingBranch = providers.exec {
-    commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
-}.standardOutput.asText.map { it.trim() }
-val defaultBranches = listOf("master", "dev")
-val workingBranch = gitWorkingBranch.getOrElse("")
-val normalizedWorkingBranch = workingBranch
-    .replaceFirst("^[^A-Za-z]+".toRegex(), "")
-    .replace("[^0-9A-Za-z]+".toRegex(), "")
+// Optional release signing, configured exclusively through the environment so that no key
+// material ever lives in the repository. See doc/pipehome.md.
+val signingStoreFile: String? = System.getenv("PIPEHOME_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
 
 kotlin {
     jvmToolchain(21)
@@ -40,8 +35,8 @@ configure<ApplicationExtension> {
     namespace = NEWPIPE_APPLICATION_ID_OLD
 
     defaultConfig {
-        applicationId = NEWPIPE_APPLICATION_ID_OLD
-        resValue("string", "app_name", "NewPipe")
+        applicationId = FORK_APPLICATION_ID
+        resValue("string", "app_name", FORK_APP_NAME)
         minSdk {
             version = release(NEWPIPE_VERSION_SDK_MIN)
         }
@@ -57,24 +52,28 @@ configure<ApplicationExtension> {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (signingStoreFile != null) {
+            create("fork") {
+                storeFile = file(signingStoreFile)
+                storePassword = System.getenv("PIPEHOME_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("PIPEHOME_KEY_ALIAS")
+                keyPassword = System.getenv("PIPEHOME_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
-
-            // suffix the app id and the app name with git branch name
-            if (normalizedWorkingBranch.isEmpty() || workingBranch in defaultBranches) {
-                applicationIdSuffix = ".debug"
-                resValue("string", "app_name", "NewPipe Debug")
-            } else {
-                applicationIdSuffix = ".debug.$normalizedWorkingBranch"
-                resValue("string", "app_name", "NewPipe $workingBranch")
-            }
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "$FORK_APP_NAME Debug")
         }
 
         release {
             System.getProperty("packageSuffix")?.let { suffix ->
                 applicationIdSuffix = suffix
-                resValue("string", "app_name", "NewPipe $suffix")
+                resValue("string", "app_name", "$FORK_APP_NAME $suffix")
             }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -82,21 +81,16 @@ configure<ApplicationExtension> {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfigs.findByName("fork")?.let { signingConfig = it }
         }
 
+        // The optimised build that CI publishes. Signed with the key from the environment when
+        // one is configured, with the debug key otherwise (such builds can be installed, but
+        // builds from different machines cannot update each other).
         register("continuous") {
             initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("fork") ?: signingConfigs.getByName("debug")
             isDefault = true
-
-            // suffix the app id and the app name with git branch name
-            if (normalizedWorkingBranch.isEmpty() || workingBranch in defaultBranches) {
-                applicationIdSuffix = ".continuous"
-                resValue("string", "app_name", "NewPipe Continuous")
-            } else {
-                applicationIdSuffix = ".continuous.$normalizedWorkingBranch"
-                resValue("string", "app_name", "NewPipe $workingBranch")
-            }
         }
     }
 
