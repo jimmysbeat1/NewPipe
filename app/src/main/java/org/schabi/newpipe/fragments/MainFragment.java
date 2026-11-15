@@ -59,6 +59,9 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
 
     private boolean hasTabsChanged = false;
 
+    /** With more tabs than this, the labels at the bottom would get truncated. */
+    private static final int MAX_LABELED_TABS = 5;
+
     private SharedPreferences prefs;
     private boolean youtubeRestrictedModeEnabled;
     private String youtubeRestrictedModeEnabledKey;
@@ -90,7 +93,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
         youtubeRestrictedModeEnabledKey = getString(R.string.youtube_restricted_mode_enabled);
         youtubeRestrictedModeEnabled = prefs.getBoolean(youtubeRestrictedModeEnabledKey, false);
         mainTabsPositionKey = getString(R.string.main_tabs_position_key);
-        mainTabsPositionBottom = prefs.getBoolean(mainTabsPositionKey, false);
+        mainTabsPositionBottom = prefs.getBoolean(mainTabsPositionKey, true);
     }
 
     @Override
@@ -124,7 +127,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
             setupTabs();
         }
 
-        final boolean newMainTabsPosition = prefs.getBoolean(mainTabsPositionKey, false);
+        final boolean newMainTabsPosition = prefs.getBoolean(mainTabsPositionKey, true);
         if (mainTabsPositionBottom != newMainTabsPosition) {
             mainTabsPositionBottom = newMainTabsPosition;
             updateTabLayoutPosition();
@@ -210,6 +213,10 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
                 final Tab tab = tabsList.get(i);
                 tabToSet.setIcon(tab.getTabIconRes(requireContext()));
                 tabToSet.setContentDescription(tab.getTabName(requireContext()));
+                // at the bottom the tabs act as the app's navigation bar, so they get labels
+                // (as long as there are few enough tabs for the labels to fit)
+                tabToSet.setText(mainTabsPositionBottom && tabsList.size() <= MAX_LABELED_TABS
+                        ? tab.getTabName(requireContext()) : null);
             }
         }
     }
@@ -242,6 +249,7 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
 
         tabLayout.setLayoutParams(tabParams);
         viewPager.setLayoutParams(pagerParams);
+        updateTabsIconAndDescription();
 
         // change the background and icon color of the tab layout:
         // service-colored at the top, app-background-colored at the bottom
@@ -252,7 +260,19 @@ public class MainFragment extends BaseFragment implements TabLayout.OnTabSelecte
                 ? ThemeHelper.resolveColorFromAttr(requireContext(), android.R.attr.colorAccent)
                 : Color.WHITE;
         tabLayout.setTabRippleColor(ColorStateList.valueOf(iconColor).withAlpha(32));
-        tabLayout.setTabIconTint(ColorStateList.valueOf(iconColor));
+        if (bottom) {
+            // navigation bar look: the selected destination is highlighted, the others muted
+            @ColorInt final int mutedColor = ThemeHelper.resolveColorFromAttr(requireContext(),
+                    android.R.attr.textColorSecondary);
+            final ColorStateList colors = new ColorStateList(
+                    new int[][]{new int[]{android.R.attr.state_selected}, new int[]{}},
+                    new int[]{iconColor, mutedColor});
+            tabLayout.setTabIconTint(colors);
+            tabLayout.setTabTextColors(colors);
+        } else {
+            tabLayout.setTabIconTint(ColorStateList.valueOf(iconColor));
+            tabLayout.setTabTextColors(ColorStateList.valueOf(iconColor));
+        }
         tabLayout.setSelectedTabIndicatorColor(iconColor);
     }
 

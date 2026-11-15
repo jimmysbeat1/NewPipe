@@ -66,7 +66,9 @@ data class Candidate(
     val streamType: String,
     val source: CandidateSource,
     /** The topic or title that led to this candidate, if any. */
-    val seed: String? = null
+    val seed: String? = null,
+    /** Whether the service flagged this stream as short-form content. */
+    val isShort: Boolean = false
 )
 
 enum class FeedbackKind {

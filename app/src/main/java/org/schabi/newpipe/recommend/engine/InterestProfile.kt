@@ -77,6 +77,9 @@ class InterestProfile(
             nowMillis: Long
         ): InterestProfile {
             val terms = HashMap<String, Double>()
+            // number of watch events and searches a term occurred in
+            val support = HashMap<String, Int>()
+            val searched = HashSet<String>()
             val channels = HashMap<String, Double>()
             val watched = HashMap<String, Double>()
 
@@ -84,6 +87,7 @@ class InterestProfile(
                 val engagement = engagement(event, nowMillis)
                 for (term in Tokenizer.terms(event.title)) {
                     terms.merge(term, engagement, Double::plus)
+                    support.merge(term, 1, Int::plus)
                 }
                 channels.merge(channelKey(event.uploaderUrl, event.uploader), engagement, Double::plus)
                 // a stream that was opened several times counts as seen even if it was never
@@ -97,6 +101,8 @@ class InterestProfile(
                 val weight = 1.5 * recency(search.epochMillis, nowMillis)
                 for (term in Tokenizer.terms(search.query)) {
                     terms.merge(term, weight, Double::plus)
+                    support.merge(term, 1, Int::plus)
+                    searched.add(term)
                 }
             }
 
@@ -159,7 +165,7 @@ class InterestProfile(
                 blockedTopics = blockedTopics,
                 hiddenUrls = hiddenUrls,
                 watched = watched,
-                topics = discoverTopics(termWeights, terms, history.size + searches.size),
+                topics = discoverTopics(termWeights, terms, support, searched),
                 seeds = seeds
             )
         }
@@ -179,18 +185,19 @@ class InterestProfile(
         }
 
         /**
-         * Picks the topics shown to the user and searched for new content. A phrase is preferred
-         * over its words when the words mostly occur together, and a term has to be backed by
-         * more than a single event (unless there is hardly any history yet).
+         * Picks the topics shown to the user and searched for new content. A term only becomes
+         * a topic if it came up repeatedly or was searched for explicitly, since a word from a
+         * single title says little. A phrase is preferred over its words when the words mostly
+         * occur together ("cast iron" rather than "cast" and "iron").
          */
         private fun discoverTopics(
             weights: Map<String, Double>,
             raw: Map<String, Double>,
-            eventCount: Int
+            support: Map<String, Int>,
+            searched: Set<String>
         ): List<String> {
-            val minimum = if (eventCount >= 12) 0.25 else 0.0
             val ranked = weights.entries
-                .filter { it.value >= minimum }
+                .filter { (support[it.key] ?: 0) >= 2 || it.key in searched }
                 .sortedWith(
                     compareByDescending<Map.Entry<String, Double>> {
                         // phrases are more specific, so they win ties against their words

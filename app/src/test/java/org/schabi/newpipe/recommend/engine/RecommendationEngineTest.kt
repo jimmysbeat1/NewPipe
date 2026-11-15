@@ -121,6 +121,22 @@ class RecommendationEngineTest {
     }
 
     @Test
+    fun `topics need repeated evidence unless searched for explicitly`() {
+        val profile = profile(
+            keyboardHistory,
+            searches = listOf(SearchEvent("sourdough starter", now - day))
+        )
+        // "sourdough" was watched once and searched once, "starter" only searched
+        assertTrue("sourdough starter" in profile.topics)
+        // words from a single title are not topics, however much that video was enjoyed
+        assertFalse(profile.topics.any { "scratch" in it || "collection" in it || "explained" in it })
+        // ... but still count when ranking
+        assertTrue("collection" in profile.termWeights)
+        // "switches" came up in two titles
+        assertTrue("switches" in profile.topics)
+    }
+
+    @Test
     fun `empty history yields an empty profile`() {
         val profile = profile()
         assertTrue(profile.isEmpty)

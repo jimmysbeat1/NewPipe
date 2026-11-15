@@ -69,7 +69,9 @@ object Ranker {
         if ((profile.watched[candidate.url] ?: 0.0) >= config.watchedFraction) {
             return false
         }
-        if (config.hideShorts && candidate.durationSeconds in 1..config.shortsMaxSeconds) {
+        if (config.hideShorts &&
+            (candidate.isShort || candidate.durationSeconds in 1..config.shortsMaxSeconds)
+        ) {
             return false
         }
         if (profile.blockedTopics.isNotEmpty()) {
