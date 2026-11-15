@@ -6,6 +6,7 @@
 package org.schabi.newpipe.movies
 
 import android.app.Application
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -46,7 +47,7 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
     var includeUnverified: Boolean
         get() = preferences.getBoolean(KEY_INCLUDE_UNVERIFIED, false)
         set(value) {
-            preferences.edit().putBoolean(KEY_INCLUDE_UNVERIFIED, value).apply()
+            preferences.edit { putBoolean(KEY_INCLUDE_UNVERIFIED, value) }
             if (current.query.isNotBlank()) {
                 search(current.query)
             }

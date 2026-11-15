@@ -16,6 +16,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
+import androidx.core.view.isVisible
 import com.grack.nanojson.JsonWriter
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -87,6 +88,9 @@ class ErrorActivity : AppCompatActivity() {
         // print current time, as zoned ISO8601 timestamp
         currentTimeStamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
+        // This is a fork: its errors must not be mailed to the NewPipe team. Reports can still
+        // be copied or filed as an issue in the fork's own repository.
+        binding.errorReportEmailButton.isVisible = false
         binding.errorReportEmailButton.setOnClickListener { _ ->
             openPrivacyPolicyDialog(this, "EMAIL")
         }
@@ -277,6 +281,6 @@ class ErrorActivity : AppCompatActivity() {
         private const val ERROR_EMAIL_ADDRESS = "crashreport@newpipe.schabi.org"
         private const val ERROR_EMAIL_SUBJECT = "Exception in "
 
-        private const val ERROR_GITHUB_ISSUE_URL = "https://github.com/TeamNewPipe/NewPipe/issues"
+        private const val ERROR_GITHUB_ISSUE_URL = "https://github.com/jimmysbeat1/NewPipe/issues"
     }
 }

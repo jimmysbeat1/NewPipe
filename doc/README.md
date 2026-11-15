@@ -1,3 +1,8 @@
+> [!note]
+> This repository is **PipeHome**, a personal fork of NewPipe with a personalised home feed, a movies section and a
+> redesigned navigation. It is not an official NewPipe release. See [doc/pipehome.md](/doc/pipehome.md) for what it
+> adds, how it treats your data and how to build it. The original NewPipe readme follows.
+
 <p align="center"><a href="https://newpipe.net"><img src="/assets/new_pipe_icon_5.png" width="150"></a></p> 
 <h2 align="center"><b>NewPipe</b></h2>
 <h4 align="center">A libre lightweight streaming front-end for Android.</h4>

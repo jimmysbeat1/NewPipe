@@ -6,6 +6,7 @@
 package org.schabi.newpipe.recommend.ui
 
 import android.app.Application
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -52,7 +53,7 @@ class ForYouViewModel(application: Application) : AndroidViewModel(application) 
     var hideShorts: Boolean
         get() = preferences.getBoolean(KEY_HIDE_SHORTS, true)
         set(value) {
-            preferences.edit().putBoolean(KEY_HIDE_SHORTS, value).apply()
+            preferences.edit { putBoolean(KEY_HIDE_SHORTS, value) }
             rerank()
         }
 

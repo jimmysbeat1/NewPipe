@@ -8,7 +8,7 @@ package org.schabi.newpipe.movies
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.util.external_communication.ShareUtils
 
@@ -26,7 +26,7 @@ object OfficialPlayback {
     const val STORE_URL = "https://www.youtube.com/feed/storefront"
 
     fun open(context: Context, url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
             .setPackage(YOUTUBE_PACKAGE)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {

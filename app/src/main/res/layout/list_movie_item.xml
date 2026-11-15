@@ -33,7 +33,7 @@
         android:paddingHorizontal="6dp"
         android:paddingVertical="2dp"
         android:textColor="@color/duration_text_color"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="@id/posterView"
         app:layout_constraintTop_toTopOf="@id/posterView"

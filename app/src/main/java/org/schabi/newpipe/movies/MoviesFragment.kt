@@ -68,8 +68,9 @@ class MoviesFragment : BaseFragment() {
     override fun initViews(rootView: View, savedInstanceState: Bundle?) {
         super.initViews(rootView, savedInstanceState)
         val binding = FragmentForYouBinding.bind(rootView).also { this.binding = it }
-        val header = HeaderMoviesBinding.inflate(layoutInflater, binding.itemsList, false)
-            .also { this.header = it }
+        // inflated without a parent: the list has no layout manager yet, and the adapter
+        // assigns the layout params anyway
+        val header = HeaderMoviesBinding.inflate(layoutInflater).also { this.header = it }
 
         gridAdapter = MoviePosterAdapter(null, ::open, ::showMenu)
         watchlistAdapter = MoviePosterAdapter(ROW_ITEM_WIDTH_DP, ::open, ::showMenu)

@@ -61,8 +61,9 @@ class ForYouFragment : BaseFragment() {
     override fun initViews(rootView: View, savedInstanceState: Bundle?) {
         super.initViews(rootView, savedInstanceState)
         val binding = FragmentForYouBinding.bind(rootView).also { this.binding = it }
-        val header = HeaderForYouBinding.inflate(layoutInflater, binding.itemsList, false)
-            .also { this.header = it }
+        // inflated without a parent: the list has no layout manager yet, and the adapter
+        // assigns the layout params anyway
+        val header = HeaderForYouBinding.inflate(layoutInflater).also { this.header = it }
 
         adapter = ForYouAdapter(::open, ::showItemMenu)
         val spanCount = spanCount()
