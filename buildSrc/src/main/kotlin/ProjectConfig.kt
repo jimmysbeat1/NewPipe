@@ -13,3 +13,8 @@ const val NEWPIPE_VERSION_NAME = "0.29.3"
 
 const val NEWPIPE_APPLICATION_ID_OLD = "org.schabi.newpipe"
 const val NEWPIPE_APPLICATION_ID_NEW = "net.newpipe.app"
+
+// Identity of this fork. A different application id lets it be installed next to the official
+// NewPipe; the namespace (and therefore the package of the code) is intentionally unchanged.
+const val FORK_APPLICATION_ID = "io.github.jimmysbeat1.pipehome"
+const val FORK_APP_NAME = "PipeHome"

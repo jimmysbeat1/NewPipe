@@ -12,6 +12,7 @@ import com.grack.nanojson.JsonStringWriter;
 
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.database.LocalItem.LocalItemType;
+import org.schabi.newpipe.download.DownloadsTabFragment;
 import org.schabi.newpipe.error.ErrorInfo;
 import org.schabi.newpipe.error.ErrorUtil;
 import org.schabi.newpipe.error.UserAction;
@@ -28,6 +29,8 @@ import org.schabi.newpipe.local.feed.FeedFragment;
 import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
+import org.schabi.newpipe.movies.MoviesFragment;
+import org.schabi.newpipe.recommend.ui.ForYouFragment;
 import org.schabi.newpipe.util.KioskTranslator;
 import org.schabi.newpipe.util.ServiceHelper;
 
@@ -165,7 +168,10 @@ public abstract class Tab {
         KIOSK(new KioskTab()),
         CHANNEL(new ChannelTab()),
         PLAYLIST(new PlaylistTab()),
-        FEEDGROUP(new FeedGroupTab());
+        FEEDGROUP(new FeedGroupTab()),
+        FOR_YOU(new ForYouTab()),
+        MOVIES(new MoviesTab()),
+        DOWNLOADS(new DownloadsTab());
 
         private final Tab tab;
 
@@ -742,6 +748,83 @@ public abstract class Tab {
 
         public int getIconId() {
             return iconId;
+        }
+    }
+
+    // The ids of the tabs added by this fork start at 100 to stay clear of upstream additions.
+
+    public static class ForYouTab extends Tab {
+        public static final int ID = 100;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.tab_for_you);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_home;
+        }
+
+        @Override
+        public ForYouFragment getFragment(final Context context) {
+            return new ForYouFragment();
+        }
+    }
+
+    public static class MoviesTab extends Tab {
+        public static final int ID = 101;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.tab_movies);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_movie;
+        }
+
+        @Override
+        public MoviesFragment getFragment(final Context context) {
+            return new MoviesFragment();
+        }
+    }
+
+    public static class DownloadsTab extends Tab {
+        public static final int ID = 102;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.downloads_title);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_file_download;
+        }
+
+        @Override
+        public DownloadsTabFragment getFragment(final Context context) {
+            return new DownloadsTabFragment();
         }
     }
 }

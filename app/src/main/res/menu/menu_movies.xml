@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_movies_refresh"
+        android:orderInCategory="10"
+        android:title="@string/movies_refresh"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_movies_unverified"
+        android:checkable="true"
+        android:orderInCategory="11"
+        android:title="@string/movies_include_unverified"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_movies_about"
+        android:orderInCategory="12"
+        android:title="@string/movies_about"
+        app:showAsAction="never" />
+</menu>
