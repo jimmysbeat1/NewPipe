@@ -94,6 +94,13 @@ configure<ApplicationExtension> {
         }
     }
 
+    testOptions {
+        unitTests {
+            // Robolectric tests (see MainScreenSmokeTest) inflate the real layouts
+            isIncludeAndroidResources = true
+        }
+    }
+
     lint {
         lintConfig = file("lint.xml")
         // Continue the debug build even when errors are found
@@ -316,6 +323,8 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.androidx.junit)
+    testImplementation(libs.robolectric)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)

@@ -107,7 +107,8 @@ Requirements: JDK 21 and the Android SDK (platform 37.0, build-tools 37.0.0).
 ```sh
 ./gradlew assembleDebug           # debug build, id io.github.jimmysbeat1.pipehome.debug
 ./gradlew assembleContinuous      # optimised build, the one CI publishes
-./gradlew testDebugUnitTest       # JVM tests
+./gradlew testDebugUnitTest       # JVM tests, including MainScreenSmokeTest, which starts the
+                                  # real main screen with Robolectric and uses it
 ./gradlew connectedCheck          # on-device tests, needs an emulator or phone
 
 # end-to-end tests against the real service (need network access)
