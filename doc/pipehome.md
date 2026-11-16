@@ -38,31 +38,42 @@ Candidates come from your local subscription feed and from requests made through
 Extractor: a search for a few of your topics, the videos related to a few you watched, and the
 current charts. Results are cached for a week, so the feed also works offline.
 
-### Movies
+### Movies: a library of films that may be downloaded
 
-Free full-length films with genre filters, poster cards, search and a watchlist.
+Full-length films with posters, genre filters, search, downloads in a quality of your choice
+and offline playback. Everything about it, including the licence audit and what has and has not
+been tested, is described in [film-library.md](film-library.md).
 
-Searching YouTube for "full movie" mostly returns re-uploads by people who do not own the
-films. To only show films that are legitimately available, the tab is built from a curated list
-of channels run by distributors, studios, archives and broadcasters
-(`MovieCatalog.DISTRIBUTORS`). Channels are matched by channel id, never by name. Uploads by
-anyone else are hidden; you can opt in to seeing them in search results from the menu, in which
-case they are labelled *Unverified*. The list is an editorial judgement, not a legal guarantee,
-and availability of individual films varies by country.
+In short: films come from the Internet Archive and from Wikimedia Commons through their
+documented APIs. A film is only listed if it runs for more than 40 minutes, if its source
+declares a Creative Commons licence or public-domain status in machine-readable form, and if
+it is not a trailer, an excerpt, a short film, a TV episode or a serial. The declaration is
+checked again right before every download.
+
+### YouTube movie channels (the previous Movies tab)
+
+The earlier Movies tab is still part of the app. It lists full-length films that distributors,
+studios, archives and broadcasters publish on their own YouTube channels
+(`MovieCatalog.DISTRIBUTORS`, matched by channel id), with a watchlist. These films can be
+streamed, but their publishers do not grant a licence to download them, which is why they are
+no longer shown in the Movies section. Open them from *Movies → menu → YouTube movie
+channels*, or add the tab under *Settings → Content → Content of main page*. The list is an
+editorial judgement, not a legal guarantee.
 
 ### Purchased and rented movies
 
 Films bought or rented on YouTube are DRM protected and tied to a Google account. PipeHome does
 not play them and does not try to get around the protection. The *Purchased & rented movies*
-card opens your purchases or the store in the official YouTube app if it is installed, and in
-your browser otherwise. You can pin titles you own to the Movies tab for quick access; they
+card (on the *YouTube movie channels* screen) opens your purchases or the store in the official YouTube app if it is installed, and in
+your browser otherwise. You can pin titles you own to that screen for quick access; they
 always open in the official player. This is the only feature that involves a Google account,
 and the sign-in happens in YouTube's own app or site, never in PipeHome.
 
 ### Downloads
 
 NewPipe's download manager is unchanged and is additionally available as a main tab. Use it
-for content you are authorised to download.
+for content you are authorised to download. Films from the Movies section are downloaded by
+the film library itself and are listed there under the *Downloads* filter.
 
 ### Design
 
@@ -78,15 +89,17 @@ tabs can be added back, and the new ones removed).
   option is removed so that reports for the fork are not sent to the NewPipe team.
 * **Personalisation data stays on the device.** The profile is recomputed from NewPipe's
   history each time and never stored or sent. Feedback, cached candidates, the movie catalog,
-  the watchlist and pinned purchases are JSON files in the app's private storage
-  (`files/personalisation/`). They are not part of the NewPipe database, so database
+  the watchlist, pinned purchases, the film library and the list of film downloads are JSON
+  files in the app's private storage (`files/personalisation/`). They are not part of the NewPipe database, so database
   exports stay compatible with NewPipe.
 * **What does leave the device.** To find candidates the app sends the same kind of anonymous
   requests NewPipe sends when you search or open a video: searches for a few of your topics
   (two or three words each), "related videos" lookups for a few videos you watched, the charts,
   and the upload lists of the movie distributors. They carry no account and no identifier, but
   the service can see them and your IP address, exactly as with manual use. Use a VPN or Tor
-  if that matters to you.
+  if that matters to you. The Movies section talks to `archive.org` and to
+  `commons.wikimedia.org` / `upload.wikimedia.org` instead: searches, the details of the films
+  it lists, their posters and the files you stream or download.
 * **You stay in control.** Clearing the watch or search history in *Settings → History and
   cache* makes the feed forget what it learned from it; disabling watch history stops it
   from learning. *Reset recommendations* in the Home menu deletes feedback and cached
@@ -106,20 +119,25 @@ Requirements: JDK 21 and the Android SDK (platform 37.0, build-tools 37.0.0).
 
 ```sh
 ./gradlew assembleDebug           # debug build, id io.github.jimmysbeat1.pipehome.debug
+                                  # (CI publishes it as the PipeHome-debug-apk artifact)
 ./gradlew assembleContinuous      # optimised build, the one CI publishes
 ./gradlew testDebugUnitTest       # JVM tests, including MainScreenSmokeTest, which starts the
                                   # real main screen with Robolectric and uses it
 ./gradlew connectedCheck          # on-device tests, needs an emulator or phone
 
-# end-to-end tests against the real service (need network access)
+# end-to-end tests against the real services (need network access)
 PIPEHOME_LIVE_TESTS=1 ./gradlew :app:testDebugUnitTest --tests "*LiveServiceTest*"
+PIPEHOME_LIVE_TESTS=1 ./gradlew :app:testDebugUnitTest --tests "*FilmSourcesLiveTest*"
 ```
 
 ### CI builds and signing
 
 `.github/workflows/ci.yml` builds the APK for every push to `dev`, `claude/**` and
 `feature/**` and for pull requests, runs lint and the unit tests, runs the on-device tests on
-emulators (API 23 and 35), and uploads the APK as the **PipeHome-apk** artifact of the run.
+emulators (API 23 and 35), and uploads the APK as the **PipeHome-apk** artifact of the run (the
+debuggable build as **PipeHome-debug-apk**). A further job, `film-sources-live`, runs the film
+library against the real Internet Archive and Wikimedia Commons, including real downloads; it
+depends on those services, so its failure is reported without failing the workflow.
 
 Without further setup the APK is signed with a throwaway debug key. Such builds install fine,
 but Android refuses to update an app with an APK signed by a different key, so you would have
@@ -150,9 +168,10 @@ update installed copies. Locally, the same build is produced by setting
 | `recommend/engine` | Pure Kotlin: tokenizer, interest profile, ranker. No Android dependencies. |
 | `recommend/data` | Signals from the database, candidate fetching, JSON store, repository |
 | `recommend/ui` | Home tab |
-| `movies` | Catalog rules, fetching, repository, Movies tab, official playback hand-off |
+| `movies/library` | Film library: licence audit, sources, repository, downloads, player, Movies tab |
+| `movies` | YouTube movie channels: catalog rules, fetching, repository, official playback hand-off |
 | `download/DownloadsTabFragment.kt` | Download manager as a tab |
-| `settings/tabs/Tab.java` | The three new tab types (ids 100 to 102) |
+| `settings/tabs/Tab.java` | The new tab types (ids 100 to 103) |
 | `fragments/MainFragment.java` | Bottom navigation bar |
 
 ## Known limitations
@@ -161,8 +180,9 @@ update installed copies. Locally, the same build is produced by setting
   less well for vague ones; there is no understanding of video content.
 * "Related videos" lookups load a full video page each and may be refused by the service when
   it suspects automation; the feed then relies on the other sources.
-* Poster cards crop the 16:9 video thumbnail; YouTube does not provide real posters for these
-  uploads. Genres are inferred from the words distributors put into titles, so some films only
-  appear under *All*.
+* On the *YouTube movie channels* screen, poster cards crop the 16:9 video thumbnail; YouTube
+  does not provide real posters for these uploads. Genres are inferred from the words
+  distributors put into titles, so some films only appear under *All*.
+* The limitations of the film library are listed in [film-library.md](film-library.md).
 * The watchlist and pinned purchases are not included in NewPipe's export/import.
 * The app icon is still NewPipe's.
