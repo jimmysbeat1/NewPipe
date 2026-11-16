@@ -5,12 +5,14 @@
 
 package org.schabi.newpipe
 
+import android.os.SystemClock
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -25,6 +27,10 @@ import us.shandian.giga.ui.fragment.MissionsFragment
 /** Launches the real app and walks through the main navigation. */
 @RunWith(AndroidJUnit4::class)
 class MainTabsTest {
+    private companion object {
+        const val SETTLE_TIMEOUT_MILLIS = 10_000L
+        const val SETTLE_POLL_MILLIS = 50L
+    }
 
     private fun MainActivity.mainFragment(): MainFragment {
         return supportFragmentManager.fragments.filterIsInstance<MainFragment>().single()
@@ -34,7 +40,24 @@ class MainTabsTest {
 
     private fun ActivityScenario<MainActivity>.selectTab(index: Int) {
         onActivity { it.tabLayout().getTabAt(index)!!.select() }
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        // The pager scrolls to the tab with an animation and resumes its fragment only when the
+        // animation is over, which is after the main thread has first become idle. Wait until
+        // the resumed fragment is the one the pager shows.
+        val deadline = SystemClock.uptimeMillis() + SETTLE_TIMEOUT_MILLIS
+        var settled = false
+        while (!settled && SystemClock.uptimeMillis() < deadline) {
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            onActivity { activity ->
+                val pager = activity.findViewById<ViewPager>(R.id.pager)
+                val resumed = activity.mainFragment().childFragmentManager.fragments.filter { it.isResumed }
+                settled = pager.currentItem == index && pager.width > 0 &&
+                    resumed.size == 1 && resumed[0].view?.left == pager.scrollX
+            }
+            if (!settled) {
+                Thread.sleep(SETTLE_POLL_MILLIS)
+            }
+        }
+        assertThat(settled).describedAs("tab $index is shown and resumed").isTrue()
     }
 
     private inline fun <reified T : Fragment> MainActivity.visibleTab(): T {
