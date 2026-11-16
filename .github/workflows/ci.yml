@@ -72,7 +72,7 @@ jobs:
           PIPEHOME_KEYSTORE_PASSWORD: ${{ secrets.PIPEHOME_KEYSTORE_PASSWORD }}
           PIPEHOME_KEY_ALIAS: ${{ secrets.PIPEHOME_KEY_ALIAS }}
           PIPEHOME_KEY_PASSWORD: ${{ secrets.PIPEHOME_KEY_PASSWORD }}
-        run: ./gradlew assembleContinuous lintContinuous testDebugUnitTest --stacktrace -DskipFormatKtlint
+        run: ./gradlew assembleContinuous assembleDebug lintContinuous testDebugUnitTest --stacktrace -DskipFormatKtlint
 
       - name: Rename APK
         run: |
@@ -87,6 +87,14 @@ jobs:
           path: app/build/outputs/apk/continuous/*.apk
           if-no-files-found: error
 
+      # The debuggable build (application id ends in .debug, installs next to the other one)
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: PipeHome-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
       - name: Upload test and lint reports
         uses: actions/upload-artifact@v7
         if: always()
@@ -95,6 +103,48 @@ jobs:
           path: |
             app/build/reports/**
             shared/build/reports/**
+          if-no-files-found: ignore
+
+  # End-to-end check of the film library against the real Internet Archive and Wikimedia
+  # Commons, including real downloads. It depends on services outside of this repository, so a
+  # failure is reported but does not fail the workflow.
+  film-sources-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+          cache: 'gradle'
+
+      - name: Run live film library tests
+        env:
+          PIPEHOME_LIVE_TESTS: 1
+        run: |
+          export PIPEHOME_LIVE_REPORT="$RUNNER_TEMP/film-library-live.txt"
+          ./gradlew :app:testDebugUnitTest --tests "*FilmSourcesLiveTest*" --stacktrace -DskipFormatKtlint
+
+      - name: Show what the sources returned
+        if: always()
+        run: cat "$RUNNER_TEMP/film-library-live.txt" || true
+
+      - name: Upload live test report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: film-library-live-report
+          path: |
+            ${{ runner.temp }}/film-library-live.txt
+            app/build/reports/tests/**
           if-no-files-found: ignore
 
   test-android:

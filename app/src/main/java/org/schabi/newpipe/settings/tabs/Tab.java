@@ -30,6 +30,7 @@ import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.movies.MoviesFragment;
+import org.schabi.newpipe.movies.library.FilmLibraryFragment;
 import org.schabi.newpipe.recommend.ui.ForYouFragment;
 import org.schabi.newpipe.util.KioskTranslator;
 import org.schabi.newpipe.util.ServiceHelper;
@@ -171,7 +172,8 @@ public abstract class Tab {
         FEEDGROUP(new FeedGroupTab()),
         FOR_YOU(new ForYouTab()),
         MOVIES(new MoviesTab()),
-        DOWNLOADS(new DownloadsTab());
+        DOWNLOADS(new DownloadsTab()),
+        YOUTUBE_MOVIES(new YoutubeMoviesTab());
 
         private final Tab tab;
 
@@ -789,6 +791,32 @@ public abstract class Tab {
         @Override
         public String getTabName(final Context context) {
             return context.getString(R.string.tab_movies);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_movie;
+        }
+
+        @Override
+        public FilmLibraryFragment getFragment(final Context context) {
+            return new FilmLibraryFragment();
+        }
+    }
+
+    /** The films of distributors on YouTube, which can be streamed but not downloaded. */
+    public static class YoutubeMoviesTab extends Tab {
+        public static final int ID = 103;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.tab_youtube_movies);
         }
 
         @DrawableRes

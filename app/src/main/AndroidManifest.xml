@@ -136,6 +136,17 @@
             android:label="@string/app_name"
             android:launchMode="singleTask" />
 
+        <service
+            android:name=".movies.library.FilmDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <activity
+            android:name=".movies.library.FilmPlayerActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <service android:name="us.shandian.giga.service.DownloadManagerService"
             android:foregroundServiceType="dataSync" />
 

@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 import org.schabi.newpipe.download.DownloadsTabFragment
 import org.schabi.newpipe.fragments.MainFragment
 import org.schabi.newpipe.local.subscription.SubscriptionFragment
-import org.schabi.newpipe.movies.MoviesFragment
+import org.schabi.newpipe.movies.library.FilmLibraryFragment
 import org.schabi.newpipe.recommend.ui.ForYouFragment
 import us.shandian.giga.ui.fragment.MissionsFragment
 
@@ -73,8 +73,8 @@ class MainTabsTest {
 
             scenario.selectTab(1)
             scenario.onActivity { activity ->
-                val view = activity.visibleTab<MoviesFragment>().requireView()
-                // the header with search box and the purchases entry is always part of the list
+                val view = activity.visibleTab<FilmLibraryFragment>().requireView()
+                // the header with the search box is always part of the list
                 val list = view.findViewById<RecyclerView>(R.id.itemsList)
                 assertThat(list.adapter!!.itemCount).isGreaterThanOrEqualTo(1)
             }
@@ -104,12 +104,12 @@ class MainTabsTest {
     }
 
     @Test
-    fun moviesHeaderOffersSearchAndPurchases() {
+    fun moviesHeaderOffersSearch() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             scenario.selectTab(1)
             scenario.onActivity { activity ->
-                val view = activity.visibleTab<MoviesFragment>().requireView()
+                val view = activity.visibleTab<FilmLibraryFragment>().requireView()
                 view.findViewById<RecyclerView>(R.id.itemsList).apply {
                     measure(
                         View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -118,7 +118,7 @@ class MainTabsTest {
                     layout(left, top, right, bottom)
                 }
                 assertThat(view.findViewById<View>(R.id.searchInput).isShown).isTrue()
-                assertThat(view.findViewById<View>(R.id.purchasesButton).isShown).isTrue()
+                assertThat(view.findViewById<View>(R.id.sectionTitle).isShown).isTrue()
             }
         }
     }

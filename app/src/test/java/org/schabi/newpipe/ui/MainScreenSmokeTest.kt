@@ -21,6 +21,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.android.material.tabs.TabLayout
+import java.io.IOException
 import java.time.OffsetDateTime
 import kotlinx.serialization.builtins.ListSerializer
 import org.junit.After
@@ -46,10 +47,20 @@ import org.schabi.newpipe.download.DownloadsTabFragment
 import org.schabi.newpipe.extractor.stream.StreamType
 import org.schabi.newpipe.fragments.MainFragment
 import org.schabi.newpipe.local.subscription.SubscriptionFragment
+import org.schabi.newpipe.movies.Genre
 import org.schabi.newpipe.movies.Movie
 import org.schabi.newpipe.movies.MovieCatalog
 import org.schabi.newpipe.movies.MovieCatalogCache
-import org.schabi.newpipe.movies.MoviesFragment
+import org.schabi.newpipe.movies.library.Film
+import org.schabi.newpipe.movies.library.FilmDownloads
+import org.schabi.newpipe.movies.library.FilmFile
+import org.schabi.newpipe.movies.library.FilmHttp
+import org.schabi.newpipe.movies.library.FilmLibraryCache
+import org.schabi.newpipe.movies.library.FilmLibraryFragment
+import org.schabi.newpipe.movies.library.FilmLicence
+import org.schabi.newpipe.movies.library.FilmNetwork
+import org.schabi.newpipe.movies.library.FilmSource
+import org.schabi.newpipe.movies.library.LicenceKind
 import org.schabi.newpipe.player.PlayerService
 import org.schabi.newpipe.recommend.data.CachedCandidate
 import org.schabi.newpipe.recommend.data.CandidateCache
@@ -58,6 +69,8 @@ import org.schabi.newpipe.recommend.engine.Candidate
 import org.schabi.newpipe.recommend.engine.CandidateSource
 import org.schabi.newpipe.recommend.engine.Feedback
 import org.schabi.newpipe.recommend.ui.ForYouFragment
+import org.schabi.newpipe.settings.tabs.Tab
+import org.schabi.newpipe.settings.tabs.TabsManager
 import us.shandian.giga.service.DownloadManagerService
 
 /**
@@ -73,6 +86,7 @@ class MainScreenSmokeTest {
     private lateinit var database: AppDatabase
     private lateinit var store: PersonalStore
     private val now = System.currentTimeMillis()
+    private lateinit var realFilmHttp: FilmHttp
 
     @Before
     fun setUp() {
@@ -101,13 +115,22 @@ class MainScreenSmokeTest {
             set(null, null)
         }
         store = PersonalStore.get(application)
+        FilmDownloads::class.java.getDeclaredField("instance").apply {
+            isAccessible = true
+            set(null, null)
+        }
         // fresh but empty caches: nothing is fetched unless a test wants it to be
         store.write("candidates", CandidateCache.serializer(), CandidateCache(now, emptyList()))
         store.write("movie_catalog", MovieCatalogCache.serializer(), MovieCatalogCache(now, emptyList()))
+        store.write("film_library", FilmLibraryCache.serializer(), FilmLibraryCache(now))
+        // the film sources are never contacted from these tests
+        realFilmHttp = FilmNetwork.http
+        FilmNetwork.http = FilmHttp { throw IOException("No network in this test") }
     }
 
     @After
     fun tearDown() {
+        FilmNetwork.http = realFilmHttp
         database.close()
     }
 
@@ -186,7 +209,7 @@ class MainScreenSmokeTest {
         assertTrue((0 until tabs.tabCount).all { tabs.getTabAt(it)!!.icon != null })
 
         assertTrue(activity.visibleTab() is ForYouFragment)
-        assertTrue(activity.selectTab(1) is MoviesFragment)
+        assertTrue(activity.selectTab(1) is FilmLibraryFragment)
         assertTrue(activity.selectTab(2) is SubscriptionFragment)
         assertTrue(activity.selectTab(3) is DownloadsTabFragment)
         assertTrue(activity.selectTab(0) is ForYouFragment)
@@ -348,7 +371,20 @@ class MainScreenSmokeTest {
         )!!
     }
 
+    /** Puts the tab with the films of YouTube distributors where the film library usually is. */
+    private fun useYoutubeMoviesTab() {
+        TabsManager.getManager(application).saveTabs(
+            listOf(
+                Tab.Type.FOR_YOU.tab,
+                Tab.Type.YOUTUBE_MOVIES.tab,
+                Tab.Type.SUBSCRIPTIONS.tab,
+                Tab.Type.DOWNLOADS.tab
+            )
+        )
+    }
+
     private fun fillMovies(): List<Movie> {
+        useYoutubeMoviesTab()
         val movies = listOf(
             movie("Night of the Living Dead (1968) | Horror | Full Movie"),
             movie("The Four of the Apocalypse | 4K | Spaghetti Western"),
@@ -434,6 +470,88 @@ class MainScreenSmokeTest {
             val stored = store.read("movie_purchases", ListSerializer(Movie.serializer()), emptyList())
             assertEquals("https://www.youtube.com/watch?v=dQw4w9WgXcQ", stored.single().url)
             assertTrue(stored.single().officialOnly)
+        }
+    }
+
+    // ------------------------------------------------------------- film library
+
+    private fun film(id: String, title: String, year: Int, source: FilmSource, vararg genres: Genre): Film {
+        return Film(
+            source = source,
+            id = id,
+            title = title,
+            year = year,
+            durationSeconds = 4724,
+            genres = genres.toSet(),
+            pageUrl = "https://archive.org/details/$id",
+            licence = FilmLicence(LicenceKind.PUBLIC_DOMAIN, "Public domain", "https://creativecommons.org/publicdomain/mark/1.0/"),
+            creator = "Buster Keaton",
+            description = "A train engineer chases the spies who stole his locomotive.",
+            files = listOf(
+                FilmFile("https://archive.org/download/$id/$id.mp4", "$id.mp4", 480, "MP4", 324928028, sha1 = "ab"),
+                FilmFile("https://archive.org/download/$id/${id}_512kb.mp4", "${id}_512kb.mp4", 240, "MP4", 150000000)
+            ),
+            popularity = (2000 - year).toLong()
+        )
+    }
+
+    @Test
+    fun filmLibraryShowsLicensedFilmsWithGenresDetailsAndQualities() {
+        val films = listOf(
+            film("general", "The General", 1926, FilmSource.INTERNET_ARCHIVE, Genre.COMEDY, Genre.CLASSICS),
+            film("nosferatu", "Nosferatu", 1922, FilmSource.WIKIMEDIA_COMMONS, Genre.HORROR, Genre.CLASSICS),
+            film("charade", "Charade", 1963, FilmSource.INTERNET_ARCHIVE, Genre.COMEDY, Genre.MYSTERY)
+        )
+        store.write("film_library", FilmLibraryCache.serializer(), FilmLibraryCache(now, films))
+        launch { activity ->
+            val fragment = activity.selectTab(1)
+            assertTrue(fragment is FilmLibraryFragment)
+            val list = fragment.list()
+            waitFor("library") { list.adapter!!.itemCount == 4 }
+            list.layoutNow()
+
+            val header = list.getChildAt(0)
+            assertEquals("Free to download", header.text(R.id.sectionTitle))
+            val grid = list.children().drop(1)
+            assertEquals(setOf("The General", "Nosferatu", "Charade"), grid.map { it.text(R.id.titleView) }.toSet())
+            val general = grid.single { it.text(R.id.titleView) == "The General" }
+            assertEquals("1926 • 1 h 18 min", general.text(R.id.detailsView))
+            assertEquals("Internet Archive • Public domain", general.text(R.id.channelView))
+            assertEquals(View.GONE, general.findViewById<View>(R.id.badgeView).visibility)
+            val nosferatu = grid.single { it.text(R.id.titleView) == "Nosferatu" }
+            assertEquals("Wikimedia Commons • Public domain", nosferatu.text(R.id.channelView))
+
+            // genre chips; there is no "Downloads" chip while nothing was downloaded
+            val chips = header.findViewById<ViewGroup>(R.id.chips).children().map { it as TextView }
+            assertEquals(
+                listOf("All", "Classics", "Comedy", "Horror", "Mystery"),
+                chips.map { it.text.toString() }
+            )
+            chips.single { it.text.toString() == "Horror" }.performClick()
+            waitFor("genre filter") { list.adapter!!.itemCount == 2 }
+            assertEquals("Horror", list.layoutNow().getChildAt(0).text(R.id.sectionTitle))
+            assertEquals(listOf("Nosferatu"), list.children().drop(1).map { it.text(R.id.titleView) })
+
+            // details with licence and source, then the choice of download qualities
+            list.getChildAt(1).performClick()
+            idle()
+            val details = ShadowDialog.getLatestDialog() as AlertDialog
+            assertTrue(details.isShowing)
+            assertEquals("Nosferatu", details.findViewById<TextView>(R.id.filmTitle)!!.text.toString())
+            assertEquals("Licence: Public domain", details.findViewById<TextView>(R.id.filmLicence)!!.text.toString())
+            assertEquals("View on Wikimedia Commons", details.findViewById<TextView>(R.id.filmSource)!!.text.toString())
+            assertEquals("Stream", details.findViewById<TextView>(R.id.filmPlay)!!.text.toString())
+            assertEquals(View.GONE, details.findViewById<View>(R.id.filmDelete)!!.visibility)
+            assertEquals(View.GONE, details.findViewById<View>(R.id.filmProgress)!!.visibility)
+            details.findViewById<View>(R.id.filmDownload)!!.performClick()
+            idle()
+
+            val qualities = ShadowDialog.getLatestDialog() as AlertDialog
+            assertTrue(qualities !== details && qualities.isShowing)
+            val items = qualities.listView.adapter
+            assertEquals(2, items.count)
+            assertTrue(items.getItem(0).toString().startsWith("480p • MP4 • "))
+            assertTrue(items.getItem(1).toString().startsWith("240p • MP4 • "))
         }
     }
 }
