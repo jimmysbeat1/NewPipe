@@ -11,7 +11,8 @@ jobs:
       - shell: bash {0}
         run: |
           UA="PipeHomeProbe/0.1 (https://github.com/jimmysbeat1/NewPipe)"
-          g() { local n="$1" u="$2"; shift 2; local a=(); for p in "$@"; do a+=(--data-urlencode "$p"); done; echo; echo "##### $n"; curl -sS -m 60 -A "$UA" -G "$u" "${a[@]}"; }
+          g() { local n="$1" u="$2"; shift 2; local a=(); for p in "$@"; do a+=(--data-urlencode "$p"); done; echo "##### $n" >&2; sleep 1; curl -sS -m 60 -A "$UA" -G "$u" "${a[@]}"; }
+          exec 2>&1
           IA=https://archive.org/advancedsearch.php
           F=('fl[]=identifier' 'fl[]=title' 'fl[]=licenseurl' 'fl[]=runtime' 'fl[]=year' 'fl[]=subject' 'fl[]=collection' 'fl[]=downloads' 'fl[]=creator' 'fl[]=language')
           B='mediatype:movies AND collection:feature_films AND licenseurl:*'
@@ -23,14 +24,11 @@ jobs:
           for q in 'licenseurl:*publicdomain*' 'licenseurl:*licenses*' 'subject:comedy' 'title:(night)' 'collection:(Comedy_Films)' 'collection:(SciFi_Horror)' 'collection:(Film_Noir)' 'collection:(silent_films)' '(zombie)'; do
             g "IA ff AND $q" $IA "q=$B AND $q" rows=2 output=json "${F[@]}" | jq -c '.response.numFound, .response.docs[]'
           done
-          echo "##### license facet"; for p in 1 2 3; do curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 -d page=$p --data-urlencode 'fl[]=licenseurl' -d output=json | jq -r '.response.docs[].licenseurl'; done | sort | uniq -c | sort -rn | head -60
-          echo "##### subject facet"; curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 --data-urlencode 'fl[]=subject' -d output=json | jq -r '.response.docs[].subject | if type=="array" then .[] else . end' | tr 'A-Z' 'a-z' | tr ';,' '\n\n' | sed 's/^ *//;s/ *$//' | sort | uniq -c | sort -rn | head -80
-          echo "##### collection facet"; curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 --data-urlencode 'fl[]=collection' -d output=json | jq -r '.response.docs[].collection | if type=="array" then .[] else . end' | sort | uniq -c | sort -rn | head -40
           ID=$(curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=3 --data-urlencode 'sort[]=downloads desc' --data-urlencode 'fl[]=identifier' -d output=json | jq -r '.response.docs[].identifier')
           for id in $ID night_of_the_living_dead; do
             g "IA metadata $id" https://archive.org/metadata/$id | jq -c '{keys: keys, is_dark, server, d1, dir, metadata: (.metadata|del(.description)), files: [.files[] | select(.name|test("\\.(mp4|mpeg|mpg|ogv|avi|mkv|webm|mov|m4v|jpg|png|gif)$";"i"))]}'
           done
-          echo; echo "##### IA head download"; f=$(curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | jq -r '[.files[]|select(.name|test("\\.mp4$"))][0].name'); echo "$f"; curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/night_of_the_living_dead/$f" | grep -iE '^(HTTP|location|content-|accept-ranges|etag)'
+          echo; echo "##### IA head download"; f=$(curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | jq -r '[.files[]|select(.name|test("\\.mp4$"))][0].name'); curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | head -c 600; echo "$f"; curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/night_of_the_living_dead/$f" | grep -iE '^(HTTP|location|content-|accept-ranges|etag)'
           curl -sSIL -A "$UA" https://archive.org/services/img/night_of_the_living_dead | grep -iE '^(HTTP|location|content-)'
           C=https://commons.wikimedia.org/w/api.php
           Q=(action=query format=json formatversion=2)
