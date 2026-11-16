@@ -8,32 +8,42 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - shell: bash {0}
+        run: |
           UA="PipeHomeProbe/0.1 (https://github.com/jimmysbeat1/NewPipe)"
-          g() { echo; echo "##### $1"; curl -sS -m 60 -A "$UA" -G "$2" "${@:3}" ; }
+          g() { local n="$1" u="$2"; shift 2; local a=(); for p in "$@"; do a+=(--data-urlencode "$p"); done; echo; echo "##### $n"; curl -sS -m 60 -A "$UA" -G "$u" "${a[@]}"; }
           IA=https://archive.org/advancedsearch.php
-          F='-d fl[]=identifier -d fl[]=title -d fl[]=licenseurl -d fl[]=runtime -d fl[]=year -d fl[]=subject -d fl[]=collection -d fl[]=downloads -d fl[]=creator -d fl[]=language'
-          g "IA feature_films+license count" $IA --data-urlencode 'q=mediatype:movies AND collection:feature_films AND licenseurl:*' -d rows=40 -d 'sort[]=downloads desc' -d output=json $F | jq -c '.response.numFound, .response.docs[]'
-          g "IA feature_films total" $IA --data-urlencode 'q=mediatype:movies AND collection:feature_films' -d rows=0 -d output=json | jq -c '.response.numFound'
-          g "IA movies CC total" $IA --data-urlencode 'q=mediatype:movies AND licenseurl:*creativecommons* AND collection:(feature_films OR moviesandfilms)' -d rows=0 -d output=json | jq -c '.response.numFound'
-          for q in 'licenseurl:*publicdomain*' 'licenseurl:*licenses\/by*' 'subject:comedy' 'title:(night)' ; do
-            g "IA ff AND $q" $IA --data-urlencode "q=mediatype:movies AND collection:feature_films AND licenseurl:* AND $q" -d rows=3 -d output=json $F | jq -c '.response.numFound, .response.docs[]'
+          F=('fl[]=identifier' 'fl[]=title' 'fl[]=licenseurl' 'fl[]=runtime' 'fl[]=year' 'fl[]=subject' 'fl[]=collection' 'fl[]=downloads' 'fl[]=creator' 'fl[]=language')
+          B='mediatype:movies AND collection:feature_films AND licenseurl:*'
+          g "IA ff+license" $IA "q=$B" rows=40 'sort[]=downloads desc' output=json "${F[@]}" | jq -c '.response.numFound, .response.docs[]'
+          g "IA ff total" $IA 'q=mediatype:movies AND collection:feature_films' rows=0 output=json | jq -c '.response.numFound'
+          g "IA ff CC" $IA 'q=mediatype:movies AND collection:feature_films AND licenseurl:*creativecommons*' rows=0 output=json | jq -c '.response.numFound'
+          g "IA ff CC http prefix" $IA 'q=mediatype:movies AND collection:feature_films AND licenseurl:http*creativecommons.org*' rows=0 output=json | jq -c '.response.numFound'
+          g "IA ff restricted" $IA "q=$B AND access-restricted-item:true" rows=0 output=json | jq -c '.response.numFound'
+          for q in 'licenseurl:*publicdomain*' 'licenseurl:*licenses*' 'subject:comedy' 'title:(night)' 'collection:(Comedy_Films)' 'collection:(SciFi_Horror)' 'collection:(Film_Noir)' 'collection:(silent_films)' '(zombie)'; do
+            g "IA ff AND $q" $IA "q=$B AND $q" rows=2 output=json "${F[@]}" | jq -c '.response.numFound, .response.docs[]'
           done
-          g "IA license facet" $IA --data-urlencode 'q=mediatype:movies AND collection:feature_films AND licenseurl:*' -d rows=300 -d page=1 -d 'fl[]=licenseurl' -d output=json | jq -r '.response.docs[].licenseurl' | sort | uniq -c | sort -rn | head -40
-          ID=$(curl -sS -A "$UA" -G $IA --data-urlencode 'q=mediatype:movies AND collection:feature_films AND licenseurl:*' -d rows=3 -d 'sort[]=downloads desc' -d 'fl[]=identifier' -d output=json | jq -r '.response.docs[].identifier')
+          echo "##### license facet"; for p in 1 2 3; do curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 -d page=$p --data-urlencode 'fl[]=licenseurl' -d output=json | jq -r '.response.docs[].licenseurl'; done | sort | uniq -c | sort -rn | head -60
+          echo "##### subject facet"; curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 --data-urlencode 'fl[]=subject' -d output=json | jq -r '.response.docs[].subject | if type=="array" then .[] else . end' | tr 'A-Z' 'a-z' | tr ';,' '\n\n' | sed 's/^ *//;s/ *$//' | sort | uniq -c | sort -rn | head -80
+          echo "##### collection facet"; curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=1000 --data-urlencode 'fl[]=collection' -d output=json | jq -r '.response.docs[].collection | if type=="array" then .[] else . end' | sort | uniq -c | sort -rn | head -40
+          ID=$(curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=3 --data-urlencode 'sort[]=downloads desc' --data-urlencode 'fl[]=identifier' -d output=json | jq -r '.response.docs[].identifier')
           for id in $ID night_of_the_living_dead; do
-            g "IA metadata $id" https://archive.org/metadata/$id | jq -c '{keys: keys, is_dark, server, dir, metadata: (.metadata|del(.description)), files: [.files[] | select(.name|test("\\.(mp4|mpeg|mpg|ogv|avi|mkv|webm|mov|m4v|jpg|png|gif)$";"i"))]}'
+            g "IA metadata $id" https://archive.org/metadata/$id | jq -c '{keys: keys, is_dark, server, d1, dir, metadata: (.metadata|del(.description)), files: [.files[] | select(.name|test("\\.(mp4|mpeg|mpg|ogv|avi|mkv|webm|mov|m4v|jpg|png|gif)$";"i"))]}'
           done
-          echo; echo "##### IA head download"; f=$(curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | jq -r '[.files[]|select(.name|test("\\.mp4$"))][0].name'); curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/night_of_the_living_dead/$f" | grep -iE '^(HTTP|location|content-|accept-ranges|etag)'
-          curl -sSI -A "$UA" https://archive.org/services/img/night_of_the_living_dead | grep -iE '^(HTTP|location|content-)'
+          echo; echo "##### IA head download"; f=$(curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | jq -r '[.files[]|select(.name|test("\\.mp4$"))][0].name'); echo "$f"; curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/night_of_the_living_dead/$f" | grep -iE '^(HTTP|location|content-|accept-ranges|etag)'
+          curl -sSIL -A "$UA" https://archive.org/services/img/night_of_the_living_dead | grep -iE '^(HTTP|location|content-)'
           C=https://commons.wikimedia.org/w/api.php
-          g "commons catinfo" $C -d action=query -d format=json -d formatversion=2 -d prop=categoryinfo --data-urlencode 'titles=Category:Feature films|Category:Full films|Category:Films in the public domain|Category:Videos of films|Category:Full-length films|Category:Complete films|Category:Feature films by year|Category:Videos of feature films|Category:Public domain films|Category:Film videos' | jq -c '.query.pages[]'
-          for s in 'filetype:video deepcat:"Feature films"' 'filetype:video deepcat:"Full films"' 'filetype:video incategory:"Full films"' 'filetype:video deepcat:"Films in the public domain"' 'filetype:video filesize:>300000' 'filetype:video filesize:>300000 deepcat:"Films"' 'filetype:video deepcat:"Feature films" nosferatu'; do
-            g "commons search $s" $C -d action=query -d format=json -d formatversion=2 -d generator=search -d gsrnamespace=6 -d gsrlimit=12 --data-urlencode "gsrsearch=$s" -d prop=videoinfo --data-urlencode 'viprop=size|mime|mediatype' | jq -c '.error, .warnings, .query.searchinfo, (.query.pages // [] | sort_by(.index)[] | {title, vi: .videoinfo[0]})'
+          Q=(action=query format=json formatversion=2)
+          g "commons catinfo" $C "${Q[@]}" prop=categoryinfo 'titles=Category:Feature films|Category:Full films|Category:Films in the public domain|Category:Videos of films|Category:Full-length films|Category:Complete films|Category:Feature films by year|Category:Videos of feature films|Category:Public domain films|Category:Film videos|Category:Films|Category:Videos of full films|Category:Full movies|Category:Silent films|Category:Films by genre|Category:Videos by genre' | jq -c '.query.pages[]'
+          for s in 'filetype:video deepcat:"Feature films"' 'filetype:video deepcat:"Full films"' 'filetype:video incategory:"Full films"' 'filetype:video deepcat:"Films in the public domain"' 'filetype:video filesize:>300000' 'filetype:video filesize:>300000 deepcat:"Films"' 'filetype:video deepcat:"Feature films" nosferatu' 'filetype:video filesize:>200000 intitle:film' 'filetype:video filesize:>200000 nosferatu'; do
+            g "commons search $s" $C "${Q[@]}" generator=search gsrnamespace=6 gsrlimit=12 "gsrsearch=$s" prop=videoinfo 'viprop=size|mime|mediatype' | jq -c '.error, .warnings, .query.searchinfo, (.query.pages // [] | sort_by(.index)[] | {title, vi: .videoinfo[0]})'
+            g "count" $C "${Q[@]}" list=search srnamespace=6 srlimit=1 srinfo=totalhits "srsearch=$s" | jq -c '.query.searchinfo'
           done
-          g "commons subcats Full films" $C -d action=query -d format=json -d formatversion=2 -d list=categorymembers --data-urlencode 'cmtitle=Category:Full films' -d cmtype=subcat -d cmlimit=100 | jq -c '[.query.categorymembers[].title]'
-          g "commons subcats Feature films" $C -d action=query -d format=json -d formatversion=2 -d list=categorymembers --data-urlencode 'cmtitle=Category:Feature films' -d cmtype='subcat|file' -d cmlimit=100 | jq -c '[.query.categorymembers[].title]'
+          for c in 'Full films' 'Feature films' 'Films in the public domain' 'Videos of films' 'Films by genre' 'Silent films'; do
+            g "commons members $c" $C "${Q[@]}" list=categorymembers "cmtitle=Category:$c" 'cmtype=subcat|file' cmlimit=60 | jq -c '[.query.categorymembers[]?.title]'
+          done
           T=$(curl -sS -A "$UA" -G $C -d action=query -d format=json -d formatversion=2 -d list=search -d srnamespace=6 -d srlimit=2 --data-urlencode 'srsearch=filetype:video filesize:>300000' | jq -r '[.query.search[].title]|join("|")')
-          g "commons full videoinfo $T" $C -d action=query -d format=json -d formatversion=2 --data-urlencode "titles=$T" -d prop='videoinfo|categories' -d cllimit=50 -d clshow='!hidden' --data-urlencode 'viprop=url|size|mime|mediatype|extmetadata|derivatives|sha1|timestamp' -d viurlwidth=400 | jq -c '.query.pages[]'
+          g "commons full videoinfo $T" $C "${Q[@]}" "titles=$T" 'prop=videoinfo|categories' cllimit=50 'clshow=!hidden' 'viprop=url|size|mime|mediatype|extmetadata|derivatives|sha1|timestamp' viurlwidth=400 | jq -c '.query.pages[]'
           U=$(curl -sS -A "$UA" -G $C -d action=query -d format=json -d formatversion=2 --data-urlencode "titles=$T" -d prop=videoinfo -d viprop=derivatives | jq -r '.query.pages[0].videoinfo[0].derivatives[0].src')
           echo "##### commons head $U"; curl -sSI -A "$UA" -r 0-99 "$U" | grep -iE '^(HTTP|content-|accept-ranges)'
+          exit 0
