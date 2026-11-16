@@ -13,35 +13,18 @@ jobs:
           UA="PipeHomeProbe/0.1 (https://github.com/jimmysbeat1/NewPipe)"
           g() { local n="$1" u="$2"; shift 2; local a=(); for p in "$@"; do a+=(--data-urlencode "$p"); done; echo "##### $n" >&2; sleep 1; curl -sS -m 60 -A "$UA" -G "$u" "${a[@]}"; }
           exec 2>&1
-          IA=https://archive.org/advancedsearch.php
-          F=('fl[]=identifier' 'fl[]=title' 'fl[]=licenseurl' 'fl[]=runtime' 'fl[]=year' 'fl[]=subject' 'fl[]=collection' 'fl[]=downloads' 'fl[]=creator' 'fl[]=language')
-          B='mediatype:movies AND collection:feature_films AND licenseurl:*'
-          g "IA ff+license" $IA "q=$B" rows=40 'sort[]=downloads desc' output=json "${F[@]}" | jq -c '.response.numFound, .response.docs[]'
-          g "IA ff total" $IA 'q=mediatype:movies AND collection:feature_films' rows=0 output=json | jq -c '.response.numFound'
-          g "IA ff CC" $IA 'q=mediatype:movies AND collection:feature_films AND licenseurl:*creativecommons*' rows=0 output=json | jq -c '.response.numFound'
-          g "IA ff CC http prefix" $IA 'q=mediatype:movies AND collection:feature_films AND licenseurl:http*creativecommons.org*' rows=0 output=json | jq -c '.response.numFound'
-          g "IA ff restricted" $IA "q=$B AND access-restricted-item:true" rows=0 output=json | jq -c '.response.numFound'
-          for q in 'licenseurl:*publicdomain*' 'licenseurl:*licenses*' 'subject:comedy' 'title:(night)' 'collection:(Comedy_Films)' 'collection:(SciFi_Horror)' 'collection:(Film_Noir)' 'collection:(silent_films)' '(zombie)'; do
-            g "IA ff AND $q" $IA "q=$B AND $q" rows=2 output=json "${F[@]}" | jq -c '.response.numFound, .response.docs[]'
-          done
-          ID=$(curl -sS -A "$UA" -G $IA --data-urlencode "q=$B" -d rows=3 --data-urlencode 'sort[]=downloads desc' --data-urlencode 'fl[]=identifier' -d output=json | jq -r '.response.docs[].identifier')
-          for id in $ID night_of_the_living_dead; do
-            g "IA metadata $id" https://archive.org/metadata/$id | jq -c '{keys: keys, is_dark, server, d1, dir, metadata: (.metadata|del(.description)), files: [.files[] | select(.name|test("\\.(mp4|mpeg|mpg|ogv|avi|mkv|webm|mov|m4v|jpg|png|gif)$";"i"))]}'
-          done
-          echo; echo "##### IA head download"; f=$(curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | jq -r '[.files[]|select(.name|test("\\.mp4$"))][0].name'); curl -sS -A "$UA" https://archive.org/metadata/night_of_the_living_dead | head -c 600; echo "$f"; curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/night_of_the_living_dead/$f" | grep -iE '^(HTTP|location|content-|accept-ranges|etag)'
-          curl -sSIL -A "$UA" https://archive.org/services/img/night_of_the_living_dead | grep -iE '^(HTTP|location|content-)'
           C=https://commons.wikimedia.org/w/api.php
           Q=(action=query format=json formatversion=2)
-          g "commons catinfo" $C "${Q[@]}" prop=categoryinfo 'titles=Category:Feature films|Category:Full films|Category:Films in the public domain|Category:Videos of films|Category:Full-length films|Category:Complete films|Category:Feature films by year|Category:Videos of feature films|Category:Public domain films|Category:Film videos|Category:Films|Category:Videos of full films|Category:Full movies|Category:Silent films|Category:Films by genre|Category:Videos by genre' | jq -c '.query.pages[]'
-          for s in 'filetype:video deepcat:"Feature films"' 'filetype:video deepcat:"Full films"' 'filetype:video incategory:"Full films"' 'filetype:video deepcat:"Films in the public domain"' 'filetype:video filesize:>300000' 'filetype:video filesize:>300000 deepcat:"Films"' 'filetype:video deepcat:"Feature films" nosferatu' 'filetype:video filesize:>200000 intitle:film' 'filetype:video filesize:>200000 nosferatu'; do
-            g "commons search $s" $C "${Q[@]}" generator=search gsrnamespace=6 gsrlimit=12 "gsrsearch=$s" prop=videoinfo 'viprop=size|mime|mediatype' | jq -c '.error, .warnings, .query.searchinfo, (.query.pages // [] | sort_by(.index)[] | {title, vi: .videoinfo[0]})'
-            g "count" $C "${Q[@]}" list=search srnamespace=6 srlimit=1 srinfo=totalhits "srsearch=$s" | jq -c '.query.searchinfo'
+          for c in 'Videos of feature films' 'Videos of films by length' 'Videos of films by genre' 'Videos of films in the public domain' 'Videos of films by decade' 'Videos of film segments' 'Videos of feature films by decade' 'Videos of feature films by country' 'Videos of feature films by genre' 'Feature films' 'Videos of comedy films' 'Videos of horror films'; do
+            g "members $c" $C "${Q[@]}" list=categorymembers "cmtitle=Category:$c" 'cmtype=subcat' cmlimit=80 | jq -c '[.query.categorymembers[]?.title]'
+            g "search count deepcat $c" $C "${Q[@]}" list=search srnamespace=6 srlimit=1 srinfo=totalhits "srsearch=filetype:video filesize:>50000 deepcat:\"$c\"" | jq -c '.warnings, .query.searchinfo'
           done
-          for c in 'Full films' 'Feature films' 'Films in the public domain' 'Videos of films' 'Films by genre' 'Silent films'; do
-            g "commons members $c" $C "${Q[@]}" list=categorymembers "cmtitle=Category:$c" 'cmtype=subcat|file' cmlimit=60 | jq -c '[.query.categorymembers[]?.title]'
+          for s in 'filetype:video deepcat:"Videos of feature films"' 'filetype:video deepcat:"Videos of feature films" chaplin' 'filetype:video deepcat:"Videos of feature films" deepcat:"Comedy films"' 'filetype:video deepcat:"Videos of feature films" incategory:"Comedy films"'; do
+            g "search $s" $C "${Q[@]}" generator=search gsrnamespace=6 gsrlimit=20 "gsrsearch=$s" gsrsort=incoming_links_desc prop=videoinfo 'viprop=url|size|mime|extmetadata|derivatives' viurlwidth=400 'viextmetadatafilter=LicenseShortName|LicenseUrl|License|Copyrighted|Categories|DateTimeOriginal|ObjectName|Artist|Restrictions' | jq -c '.error, .warnings, .continue, .batchcomplete, (.query.pages // [] | sort_by(.index)[] | {title, index, d: .videoinfo[0].duration, h: .videoinfo[0].height, size: .videoinfo[0].size, mime: .videoinfo[0].mime, em: (.videoinfo[0].extmetadata|map_values(.value)), der: [.videoinfo[0].derivatives[]? | {k: .transcodekey, h: .height, b: .bandwidth, t: .type}], thumb: .videoinfo[0].thumburl, url: .videoinfo[0].url})'
           done
-          T=$(curl -sS -A "$UA" -G $C -d action=query -d format=json -d formatversion=2 -d list=search -d srnamespace=6 -d srlimit=2 --data-urlencode 'srsearch=filetype:video filesize:>300000' | jq -r '[.query.search[].title]|join("|")')
-          g "commons full videoinfo $T" $C "${Q[@]}" "titles=$T" 'prop=videoinfo|categories' cllimit=50 'clshow=!hidden' 'viprop=url|size|mime|mediatype|extmetadata|derivatives|sha1|timestamp' viurlwidth=400 | jq -c '.query.pages[]'
-          U=$(curl -sS -A "$UA" -G $C -d action=query -d format=json -d formatversion=2 --data-urlencode "titles=$T" -d prop=videoinfo -d viprop=derivatives | jq -r '.query.pages[0].videoinfo[0].derivatives[0].src')
-          echo "##### commons head $U"; curl -sSI -A "$UA" -r 0-99 "$U" | grep -iE '^(HTTP|content-|accept-ranges)'
+          echo "##### IA dl"; curl -sSIL -A "$UA" -r 0-99 "https://archive.org/download/sex_madness/sex_madness.mp4" | grep -iE '^(HTTP|location|content-(type|length|range)|accept-ranges|etag)'
+          echo "##### IA img"; curl -sSIL -A "$UA" https://archive.org/services/img/sex_madness | grep -iE '^(HTTP|location|content-(type|length))'
+          echo "##### commons dl"; curl -sSIL -A "$UA" -r 0-99 "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.240p.vp9.webm" | grep -iE '^(HTTP|location|content-(type|length|range)|accept-ranges|etag)'
+          g "IA search page+fields" https://archive.org/advancedsearch.php 'q=mediatype:movies AND collection:feature_films AND licenseurl:http*creativecommons.org* AND -collection:short_films AND (title:(general) OR subject:(general))' rows=5 page=1 'sort[]=downloads desc' output=json 'fl[]=identifier' 'fl[]=title' 'fl[]=licenseurl' 'fl[]=runtime' 'fl[]=year' 'fl[]=subject' 'fl[]=downloads' | jq -c '.response.numFound, .response.docs[]'
+          g "IA scifi" https://archive.org/advancedsearch.php 'q=mediatype:movies AND collection:feature_films AND licenseurl:http*creativecommons.org* AND -collection:short_films AND (collection:(SciFi_Horror OR film_scifi) OR subject:("sci-fi" OR "science fiction"))' rows=3 output=json 'fl[]=identifier' 'fl[]=subject' | jq -c '.response.numFound, .response.docs[]'
           exit 0
