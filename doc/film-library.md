@@ -74,8 +74,9 @@ Measured on 16 November 2026 through the APIs:
   Creative Commons licence or public-domain mark. Only those 9,133 are candidates.
   All licence values found in a sample of 3,000 of them were `creativecommons.org` URLs of the
   accepted kinds: 82% public domain, 3% CC0, 15% CC BY variants (most often BY-NC-ND).
-* First page of candidates (the 40 most downloaded): 37 accepted, 3 rejected (a 20-minute
-  short, a TV compilation, a bundle of several films).
+* First page of candidates (the 40 most downloaded): 36 accepted, 4 rejected (an item
+  without a video file, a film labelled as nudist, a TV compilation, a bundle of several
+  films).
 * Wikimedia Commons, first two result pages (60 large film videos): 30 accepted, 25 rejected
   as shorter than 40 minutes, 5 rejected for disputed status.
 

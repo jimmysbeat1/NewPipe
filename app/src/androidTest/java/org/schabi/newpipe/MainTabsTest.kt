@@ -5,6 +5,8 @@
 
 package org.schabi.newpipe
 
+import android.Manifest
+import android.os.Build
 import android.os.SystemClock
 import android.view.View
 import androidx.fragment.app.Fragment
@@ -15,6 +17,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.schabi.newpipe.download.DownloadsTabFragment
@@ -30,6 +33,20 @@ class MainTabsTest {
     private companion object {
         const val SETTLE_TIMEOUT_MILLIS = 10_000L
         const val SETTLE_POLL_MILLIS = 50L
+    }
+
+    @Before
+    fun grantNotificationPermission() {
+        // On Android 13 and later the app asks for this permission when it is first started. The
+        // system dialog would pause the activity, and with it the tabs, in whichever test runs
+        // first.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            instrumentation.uiAutomation.grantRuntimePermission(
+                instrumentation.targetContext.packageName,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        }
     }
 
     private fun MainActivity.mainFragment(): MainFragment {
