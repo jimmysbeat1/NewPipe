@@ -155,7 +155,13 @@ class FilmLibraryRepositoryTest {
         commons.offline = true
         val (partial, partialError) = repository.search("good-0")
         assertNotNull(partialError)
-        assertEquals(setOf("good-0", "found-good-0"), partial.map { it.id }.toSet())
+        // what the earlier search found at the unreachable source is still in the library
+        assertEquals(setOf("good-0", "found-good-0", "c-0-good-0"), partial.map { it.id }.toSet())
+
+        archive.offline = true
+        val (offline, offlineError) = repository.search("found")
+        assertNotNull(offlineError)
+        assertEquals(listOf("found-good-0"), offline.map { it.id })
     }
 
     @Test

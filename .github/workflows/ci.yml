@@ -212,6 +212,15 @@ jobs:
           arch: ${{ matrix.arch }}
           script: ./gradlew connectedCheck --stacktrace
 
+      - name: Show failed tests
+        if: failure()
+        run: |
+          # the console only says that tests failed, not which ones and why
+          find app/build/outputs/androidTest-results -name '*.xml' -print0 2>/dev/null \
+            | xargs -0 -r grep -h -A 25 -E '<(failure|error)' | cut -c1-600 | head -150 || true
+          find app/build/outputs/androidTest-results -name 'logcat-*.txt' -print0 2>/dev/null \
+            | xargs -0 -r grep -h -B 2 -A 30 'FATAL EXCEPTION' | head -120 || true
+
       - name: Upload test report when tests fail # because the printed out stacktrace (console) is too short, see also #7553
         uses: actions/upload-artifact@v7
         if: failure()

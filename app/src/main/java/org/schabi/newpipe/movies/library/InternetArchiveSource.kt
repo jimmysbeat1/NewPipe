@@ -150,9 +150,13 @@ open class InternetArchiveSource(private val http: FilmHttp) {
             } catch (e: SerializationException) {
                 throw IOException("Unreadable metadata response", e)
             }
-            val metadata = root?.get("metadata") as? JsonObject
-            val dark = (root?.get("is_dark") as? JsonPrimitive)?.booleanOrNull == true
-            if (root == null || metadata == null || dark) {
+            if (root == null) {
+                // an error page instead of JSON: a problem of the moment, not a verdict on the item
+                throw IOException("Unexpected metadata response")
+            }
+            val metadata = root["metadata"] as? JsonObject
+            val dark = (root["is_dark"] as? JsonPrimitive)?.booleanOrNull == true
+            if (metadata == null || dark) {
                 return Verdict.Rejected(key(identifier), Rejection.UNAVAILABLE)
             }
             return audit(identifier, root, metadata, downloads)
