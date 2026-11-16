@@ -19,6 +19,7 @@ object FilmRules {
 
     private const val DESCRIPTION_LENGTH = 600
     private const val MAX_QUERY_WORDS = 8
+    private const val MIXED_COLLECTION = " scifi horror "
     private val OPERATORS = setOf("AND", "OR", "NOT", "TO")
 
     private val TRAILER = Regex(
@@ -42,7 +43,8 @@ object FilmRules {
         RegexOption.IGNORE_CASE
     )
     private val ADULT = Regex(
-        "\\b(porn\\w*|erotic\\w*|hentai|xxx|adult (film|movie|video)s?|sex films?|stag films?)\\b",
+        "\\b(porn\\w*|erotic\\w*|hentai|xxx|adult (film|movie|video)s?|sex films?|stag films?|" +
+            "nudist\\w*|nudie\\w*|sexploitation)\\b",
         RegexOption.IGNORE_CASE
     )
     private val HOURS_MINUTES = Regex("(\\d+) ?(?:h|hr|hrs|hours?)\\b")
@@ -120,6 +122,10 @@ object FilmRules {
         for (label in labels) {
             val words = WORD.findAll(label.lowercase(Locale.ROOT).replace('_', ' ')).map { it.value }
             val text = " " + words.joinToString(" ") + " "
+            if (text == MIXED_COLLECTION) {
+                // the "Sci-Fi / Horror" collection says nothing about which of the two a film is
+                continue
+            }
             for (genre in Genre.entries) {
                 if (genre.keywords.any { " $it " in text }) {
                     genres.add(genre)

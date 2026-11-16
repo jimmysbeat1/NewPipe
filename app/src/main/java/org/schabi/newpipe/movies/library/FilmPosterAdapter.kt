@@ -11,9 +11,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import org.schabi.newpipe.R
 import org.schabi.newpipe.databinding.ListMovieItemBinding
-import org.schabi.newpipe.util.image.CoilHelper
 
 /** Shows the films of the library as posters, with the state of their download. */
 class FilmPosterAdapter(
@@ -42,11 +40,7 @@ class FilmPosterAdapter(
             badgeView.text = card.status
             badgeView.isVisible = card.status != null
 
-            if (film.posterUrl != null) {
-                CoilHelper.loadThumbnail(posterView, film.posterUrl)
-            } else {
-                posterView.setImageResource(R.drawable.placeholder_thumbnail_video)
-            }
+            FilmPosters.load(posterView, film.posterUrl)
 
             root.contentDescription = film.title
             root.setOnClickListener { onClick(film) }

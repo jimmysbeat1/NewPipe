@@ -159,6 +159,20 @@ class InternetArchiveSourceTest {
     }
 
     @Test
+    fun `ignores a wrong length and leaves out samples`() {
+        // real cases: one derivative claiming eleven hours, and a small sample next to the film
+        val files = listOf(
+            file("film.mpeg", "original", "5400", 480, 3_000_000_000),
+            file("film.mp4", "derivative", "5400.2", 480, 500_000_000, "film.mpeg"),
+            file("film_512kb.mp4", "derivative", "39690", 240, 300_000_000, "film.mpeg"),
+            file("film_sample.mp4", "derivative", null, 360, 28_000_000, "film.mpeg")
+        )
+        val film = accepted(item(files))
+        assertEquals(5400L, film.durationSeconds)
+        assertEquals(listOf("film.mp4"), film.files.map { it.fileName })
+    }
+
+    @Test
     fun `falls back to the stated runtime when files carry no length`() {
         val files = listOf(file("film.mp4", "original", null, 480, 500_000_000))
         assertEquals(4724L, accepted(item(files, extra = ",\"runtime\":\"1:18:44\"")).durationSeconds)
@@ -183,7 +197,8 @@ class InternetArchiveSourceTest {
         val query = InternetArchiveSource.query("the General) OR x", Genre.SCI_FI)
         assertTrue("title:(the AND General)" in query)
         assertTrue("subject:(\"sci-fi\" OR \"scifi\" OR \"science fiction\"" in query)
-        assertTrue("OR collection:(SciFi_Horror OR film_scifi)" in query)
+        assertTrue("OR collection:(film_scifi)" in query)
+        assertFalse("collection:(" in InternetArchiveSource.query(null, Genre.HORROR).substringAfter("subject:"))
 
         val url = InternetArchiveSource.searchUrl(null, null, 3)
         assertTrue(url.startsWith("https://archive.org/advancedsearch.php?q=mediatype"))

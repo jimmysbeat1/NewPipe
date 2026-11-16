@@ -89,6 +89,7 @@ open class CommonsSource(private val http: FilmHttp) {
                 "needing licen[sc]e review|possibly unfree|missing source",
             RegexOption.IGNORE_CASE
         )
+        private val FILM_YEAR = Regex("\\bfilms from (1[89]\\d{2}|20\\d{2})\\b", RegexOption.IGNORE_CASE)
         private val json = Json { ignoreUnknownKeys = true }
 
         fun key(pageId: String): String = FilmSource.WIKIMEDIA_COMMONS.name + ":" + pageId
@@ -181,7 +182,10 @@ open class CommonsSource(private val http: FilmHttp) {
             if (files.isEmpty()) {
                 return reject(Rejection.NO_PLAYABLE_FILE)
             }
-            val year = FilmRules.year(rawTitle, fileTitle, value("DateTimeOriginal"))
+            // "Videos of films from 1929" is more reliable than the date field, which may hold
+            // the date of the upload
+            val categoryYear = categories.firstNotNullOfOrNull { FILM_YEAR.find(it)?.groupValues?.get(1) }
+            val year = FilmRules.year(rawTitle, categoryYear, fileTitle, value("DateTimeOriginal"))
             return Verdict.Accepted(
                 Film(
                     source = FilmSource.WIKIMEDIA_COMMONS,

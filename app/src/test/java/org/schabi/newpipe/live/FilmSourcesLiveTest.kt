@@ -128,13 +128,14 @@ class FilmSourcesLiveTest {
     }
 
     @Test
-    fun `posters load with the image loader's plain requests`() {
+    fun `posters load when the request names the app`() {
         val film = archive.search(null, null, 1).asSequence().map(archive::verify)
             .filterIsInstance<Verdict.Accepted>().first().film
         val other = commons.search(null, 0).verdicts.filterIsInstance<Verdict.Accepted>().first().film
         val client = OkHttpClient()
         for (poster in listOf(film.posterUrl, other.posterUrl)) {
-            client.newCall(Request.Builder().url(poster!!).build()).execute().use { response ->
+            val request = Request.Builder().url(poster!!).header("User-Agent", FilmNetwork.USER_AGENT).build()
+            client.newCall(request).execute().use { response ->
                 report("POSTER ${response.code} ${response.header("Content-Type")} $poster")
                 assertTrue(response.isSuccessful)
                 assertTrue(response.header("Content-Type").orEmpty().startsWith("image/"))

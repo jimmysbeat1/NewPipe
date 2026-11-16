@@ -91,6 +91,19 @@ class CommonsSourceTest {
     }
 
     @Test
+    fun `takes the year from the film categories rather than the upload date`() {
+        val metadata = meta(
+            "ObjectName" to "The Saturday Night Kid",
+            "Categories" to "Comedy films|Videos of films from 1929",
+            "DateTimeOriginal" to "2024-03-01",
+            "License" to "pd"
+        )
+        val film = (audit(page(1, 1, metadata = metadata)) as Verdict.Accepted).film
+        assertEquals(1929, film.year)
+        assertEquals(setOf(Genre.CLASSICS, Genre.COMEDY), film.genres)
+    }
+
+    @Test
     fun `offers only transcodes when the original is not playable`() {
         val film = (audit(page(1, 1, mime = "application/ogg")) as Verdict.Accepted).film
         assertEquals(listOf("1080p", "240p"), film.files.map { it.label })

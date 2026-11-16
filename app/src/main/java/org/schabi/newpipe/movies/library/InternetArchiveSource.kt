@@ -73,8 +73,7 @@ open class InternetArchiveSource(private val http: FilmHttp) {
         private val GENRE_COLLECTIONS = mapOf(
             Genre.COMEDY to listOf("Comedy_Films"),
             Genre.CRIME to listOf("Film_Noir"),
-            Genre.HORROR to listOf("SciFi_Horror"),
-            Genre.SCI_FI to listOf("SciFi_Horror", "film_scifi"),
+            Genre.SCI_FI to listOf("film_scifi"),
             Genre.CLASSICS to listOf("silent_films")
         )
         private val VIDEO_EXTENSIONS = setOf(
@@ -85,6 +84,7 @@ open class InternetArchiveSource(private val http: FilmHttp) {
         private val PLAYABLE_EXTENSIONS = setOf("mp4", "m4v", "webm", "mkv")
         private const val SIMILAR_LENGTH = 0.03
         private const val LONG_SECONDS = 20 * 60L
+        private const val MIN_BITS_PER_SECOND = 64_000
 
         private val json = Json { ignoreUnknownKeys = true }
 
@@ -185,7 +185,7 @@ open class InternetArchiveSource(private val http: FilmHttp) {
             }
             val groups = videos.groupBy { it.group }.values.toList()
             val fallback = FilmRules.parseDuration(metadata["runtime"].string()).takeIf { groups.size == 1 }
-            val lengths = groups.map { group -> group.mapNotNull { it.seconds }.maxOrNull() ?: fallback ?: 0L }
+            val lengths = groups.map { group -> duration(group) ?: fallback ?: 0L }
             val longest = lengths.maxOrNull() ?: 0L
             if (!FilmRules.isFullLength(longest)) {
                 return reject(Rejection.NOT_FULL_LENGTH)
@@ -195,9 +195,9 @@ open class InternetArchiveSource(private val http: FilmHttp) {
             if (long.any { abs(it - longest) > longest * SIMILAR_LENGTH }) {
                 return reject(Rejection.SEVERAL_FILMS)
             }
-            val candidates = groups.filterIndexed { index, _ -> lengths[index] >= LONG_SECONDS }
-            val files = candidates
-                .map { group -> playable(identifier, group) }
+            val files = groups.indices
+                .filter { lengths[it] >= LONG_SECONDS }
+                .map { playable(identifier, groups[it], lengths[it]) }
                 .maxByOrNull { it.size }
                 .orEmpty()
             if (files.isEmpty()) {
@@ -255,9 +255,25 @@ open class InternetArchiveSource(private val http: FilmHttp) {
             }
         }
 
-        private fun playable(identifier: String, group: List<VideoFile>): List<FilmFile> {
+        /**
+         * The running time of a video and its derivatives: the (lower) median of the stated
+         * lengths, so that a single wrong value does not decide.
+         */
+        private fun duration(group: List<VideoFile>): Long? {
+            val sorted = group.mapNotNull { it.seconds }.sorted()
+            return sorted.getOrNull((sorted.size - 1) / 2)
+        }
+
+        /** Whether a file plausibly holds the whole film and not a sample or another video. */
+        private fun complete(file: VideoFile, duration: Long): Boolean {
+            val sameLength = file.seconds == null || abs(file.seconds - duration) <= duration * SIMILAR_LENGTH
+            return sameLength && file.size * 8 / duration >= MIN_BITS_PER_SECOND
+        }
+
+        private fun playable(identifier: String, group: List<VideoFile>, duration: Long): List<FilmFile> {
             return group
                 .filter { it.extension in PLAYABLE_EXTENSIONS && !it.hidden && it.size > 0 }
+                .filter { complete(it, duration) }
                 .sortedWith(compareByDescending<VideoFile> { it.height }.thenByDescending { it.size })
                 .distinctBy { it.height to it.extension }
                 .map { file ->

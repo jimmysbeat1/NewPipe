@@ -54,6 +54,7 @@ class FilmRulesTest {
         assertEquals(Rejection.NOT_FULL_LENGTH, FilmRules.rejectByText("One Week", listOf("short")))
         assertEquals(Rejection.ADULT, FilmRules.rejectByText("Some Title", listOf("Pornographic films")))
         assertEquals(Rejection.ADULT, FilmRules.rejectByText("Some Title", listOf("Erotic films of the 1970s")))
+        assertEquals(Rejection.ADULT, FilmRules.rejectByText("Diary of a Nudist", listOf("drama")))
     }
 
     @Test
@@ -63,7 +64,9 @@ class FilmRulesTest {
             FilmRules.genres(listOf("Silent", "Comedy", "Romance", "War", "Buster Keaton"), 1926)
         )
         assertEquals(setOf(Genre.COMEDY), FilmRules.genres(listOf("Comedy_Films", "feature_films"), 1985))
-        assertEquals(setOf(Genre.HORROR, Genre.SCI_FI), FilmRules.genres(listOf("SciFi_Horror"), null))
+        // a mixed collection does not say which of its genres a film has
+        assertEquals(emptySet<Genre>(), FilmRules.genres(listOf("SciFi_Horror"), null))
+        assertEquals(setOf(Genre.SCI_FI), FilmRules.genres(listOf("SciFi_Horror", "film_scifi", "sci-fi"), null))
         assertEquals(setOf(Genre.CRIME), FilmRules.genres(listOf("Film_Noir"), 1975))
         assertEquals(setOf(Genre.HORROR), FilmRules.genres(listOf("Horror films videos", "Videos of films from 1972"), 1972))
         assertEquals(emptySet<Genre>(), FilmRules.genres(listOf("moviesandfilms"), 2001))

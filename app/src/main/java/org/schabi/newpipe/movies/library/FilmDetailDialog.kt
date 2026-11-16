@@ -23,7 +23,6 @@ import kotlinx.serialization.json.Json
 import org.schabi.newpipe.R
 import org.schabi.newpipe.databinding.DialogFilmDetailBinding
 import org.schabi.newpipe.util.external_communication.ShareUtils
-import org.schabi.newpipe.util.image.CoilHelper
 
 /**
  * Everything about one film: what it is, where it comes from and under which licence, and the
@@ -57,9 +56,7 @@ class FilmDetailDialog : DialogFragment() {
             filmDescription.text = film.description
             filmDescription.isVisible = !film.description.isNullOrBlank()
             filmPoster.clipToOutline = true
-            if (film.posterUrl != null) {
-                CoilHelper.loadThumbnail(filmPoster, film.posterUrl)
-            }
+            FilmPosters.load(filmPoster, film.posterUrl)
 
             filmLicence.text = getString(R.string.film_licence, film.licence.name)
             val licenceUrl = film.licence.url
