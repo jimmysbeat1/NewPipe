@@ -35,10 +35,10 @@ object LicenceAudit {
         val trimmed = url?.trim().orEmpty()
         val match = CC_URL.find(trimmed) ?: return null
         val (family, code, version, jurisdiction) = match.destructured
+        // "licenses/publicdomain" is the retired "Public Domain Dedication and Certification"
         val kind = when {
             family == "publicdomain" && code == "mark" -> LicenceKind.PUBLIC_DOMAIN
             family == "publicdomain" && code == "zero" -> LicenceKind.CC0
-            // the retired "Public Domain Dedication and Certification"
             family == "licenses" && code == "publicdomain" -> LicenceKind.PUBLIC_DOMAIN
             family == "licenses" -> LICENCES[code]
             else -> null
