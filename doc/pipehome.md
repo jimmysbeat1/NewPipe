@@ -38,11 +38,25 @@ Candidates come from your local subscription feed and from requests made through
 Extractor: a search for a few of your topics, the videos related to a few you watched, and the
 current charts. Results are cached for a week, so the feed also works offline.
 
-### Movies: a library of films that may be downloaded
+### Movies: recent films and where to watch them in Australia
+
+> Preview: this part has not been built or run yet. See [modern-movies.md](modern-movies.md).
+
+Recent, recognisable films found through TMDB, in the sections New releases, Free movies,
+Hollywood, Anime movies, Action, Horror, Comedy, Sci-Fi, Watchlist and Downloaded movies, with
+search, filters and sorting. Every film is labelled Free, Free with ads, Subscription, Rent or
+Buy, from where-to-watch data that JustWatch supplies through TMDB. Films of streaming
+services open at the official provider; the app plays trailers, films of distributors on
+YouTube and open-licence films itself, and only the last can be downloaded. It needs your own
+free TMDB key. Everything about it, including what has and has not been tested, is described
+in [modern-movies.md](modern-movies.md).
+
+### Open-licence film library (the previous Movies tab)
 
 Full-length films with posters, genre filters, search, downloads in a quality of your choice
-and offline playback. Everything about it, including the licence audit and what has and has not
-been tested, is described in [film-library.md](film-library.md).
+and offline playback. It is opened from *Movies → menu → Open-licence film library*, can be
+added as a tab under *Settings → Content → Content of main page*, and is described in
+[film-library.md](film-library.md).
 
 In short: films come from the Internet Archive and from Wikimedia Commons through their
 documented APIs. A film is only listed if it runs for more than 40 minutes, if its source
@@ -50,9 +64,9 @@ declares a Creative Commons licence or public-domain status in machine-readable 
 it is not a trailer, an excerpt, a short film, a TV episode or a serial. The declaration is
 checked again right before every download.
 
-### YouTube movie channels (the previous Movies tab)
+### YouTube movie channels (the first Movies tab)
 
-The earlier Movies tab is still part of the app. It lists full-length films that distributors,
+The earliest Movies tab is still part of the app. It lists full-length films that distributors,
 studios, archives and broadcasters publish on their own YouTube channels
 (`MovieCatalog.DISTRIBUTORS`, matched by channel id), with a watchlist. These films can be
 streamed, but their publishers do not grant a licence to download them, which is why they are
@@ -99,7 +113,9 @@ tabs can be added back, and the new ones removed).
   the service can see them and your IP address, exactly as with manual use. Use a VPN or Tor
   if that matters to you. The Movies section talks to `archive.org` and to
   `commons.wikimedia.org` / `upload.wikimedia.org` instead: searches, the details of the films
-  it lists, their posters and the files you stream or download.
+  it lists, their posters and the files you stream or download. The movie discovery talks to
+  `api.themoviedb.org` (with your own TMDB key) and `image.tmdb.org`; see
+  [modern-movies.md](modern-movies.md).
 * **You stay in control.** Clearing the watch or search history in *Settings → History and
   cache* makes the feed forget what it learned from it; disabling watch history stops it
   from learning. *Reset recommendations* in the Home menu deletes feedback and cached
@@ -168,10 +184,11 @@ update installed copies. Locally, the same build is produced by setting
 | `recommend/engine` | Pure Kotlin: tokenizer, interest profile, ranker. No Android dependencies. |
 | `recommend/data` | Signals from the database, candidate fetching, JSON store, repository |
 | `recommend/ui` | Home tab |
+| `movies/discover` | Movie discovery: TMDB client, availability labels, sections, watchlist, Movies tab |
 | `movies/library` | Film library: licence audit, sources, repository, downloads, player, Movies tab |
 | `movies` | YouTube movie channels: catalog rules, fetching, repository, official playback hand-off |
 | `download/DownloadsTabFragment.kt` | Download manager as a tab |
-| `settings/tabs/Tab.java` | The new tab types (ids 100 to 103) |
+| `settings/tabs/Tab.java` | The new tab types (ids 100 to 104) |
 | `fragments/MainFragment.java` | Bottom navigation bar |
 
 ## Known limitations

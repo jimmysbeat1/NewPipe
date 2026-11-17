@@ -1,6 +1,11 @@
-# The film library (Movies section)
+# The open-licence film library
 
-The Movies section lists full-length films that may be downloaded, lets you stream them,
+> This library was the Movies tab until the [movie discovery](modern-movies.md) replaced it.
+> It is unchanged and is opened from *Movies → menu → Open-licence film library*, or as its
+> own tab (*Settings → Content → Content of main page → Open-licence films*). Where this
+> document says "Movies section" or "Movies tab", it means this library.
+
+The library lists full-length films that may be downloaded, lets you stream them,
 download them in a quality of your choice and watch the downloads offline.
 
 * [What is shown](#what-is-shown)
