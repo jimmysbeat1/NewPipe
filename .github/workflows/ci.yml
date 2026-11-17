@@ -172,6 +172,50 @@ jobs:
             app/build/reports/tests/**
           if-no-files-found: ignore
 
+  # End-to-end check of the movie discovery against the real TMDB API. It only does something
+  # when the repository secret PIPEHOME_TMDB_KEY holds a TMDB key (see doc/modern-movies.md);
+  # without it the tests are skipped. The key is used by the tests only: it is never built into
+  # an APK. A failure is reported but does not fail the workflow.
+  tmdb-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+          cache: 'gradle'
+
+      - name: Run live TMDB tests
+        env:
+          PIPEHOME_TMDB_KEY: ${{ secrets.PIPEHOME_TMDB_KEY }}
+        run: |
+          export PIPEHOME_LIVE_REPORT="$RUNNER_TEMP/tmdb-live.txt"
+          if [ -z "$PIPEHOME_TMDB_KEY" ]; then
+            echo "PIPEHOME_TMDB_KEY is not configured: the live TMDB tests are skipped." | tee "$PIPEHOME_LIVE_REPORT"
+          fi
+          ./gradlew :app:testDebugUnitTest --tests "*TmdbLiveTest*" --stacktrace -DskipFormatKtlint
+
+      - name: Show what TMDB returned
+        if: always()
+        run: cat "$RUNNER_TEMP/tmdb-live.txt" || true
+
+      - name: Upload live test report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tmdb-live-report
+          path: ${{ runner.temp }}/tmdb-live.txt
+          if-no-files-found: ignore
+
   test-android:
     runs-on: ubuntu-latest
     timeout-minutes: 20

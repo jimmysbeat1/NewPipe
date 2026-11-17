@@ -51,6 +51,15 @@ import org.schabi.newpipe.movies.Genre
 import org.schabi.newpipe.movies.Movie
 import org.schabi.newpipe.movies.MovieCatalog
 import org.schabi.newpipe.movies.MovieCatalogCache
+import org.schabi.newpipe.movies.discover.Discover
+import org.schabi.newpipe.movies.discover.DiscoverFragment
+import org.schabi.newpipe.movies.discover.FakeTmdb
+import org.schabi.newpipe.movies.discover.SecretBox
+import org.schabi.newpipe.movies.discover.TmdbCredential
+import org.schabi.newpipe.movies.discover.TmdbCredentials
+import org.schabi.newpipe.movies.discover.TmdbFixtures
+import org.schabi.newpipe.movies.discover.TmdbHttp
+import org.schabi.newpipe.movies.discover.TmdbNetwork
 import org.schabi.newpipe.movies.library.Film
 import org.schabi.newpipe.movies.library.FilmDownloads
 import org.schabi.newpipe.movies.library.FilmFile
@@ -87,6 +96,16 @@ class MainScreenSmokeTest {
     private lateinit var store: PersonalStore
     private val now = System.currentTimeMillis()
     private lateinit var realFilmHttp: FilmHttp
+    private lateinit var realTmdbHttp: TmdbHttp
+    private lateinit var realBoxFactory: () -> SecretBox
+    private lateinit var tmdb: FakeTmdb
+
+    /** Stands in for the Android Keystore, which only exists on a device. */
+    private class TestBox : SecretBox {
+        override fun seal(plain: String) = "test:$plain"
+
+        override fun open(sealed: String): String? = sealed.removePrefix("test:")
+    }
 
     @Before
     fun setUp() {
@@ -126,11 +145,27 @@ class MainScreenSmokeTest {
         // the film sources are never contacted from these tests
         realFilmHttp = FilmNetwork.http
         FilmNetwork.http = FilmHttp { throw IOException("No network in this test") }
+
+        // TMDB is replaced by a stand-in that knows nothing until a test fills it, and no key
+        // is stored unless a test stores one
+        Discover.reset()
+        TmdbCredentials::class.java.getDeclaredField("instance").apply {
+            isAccessible = true
+            set(null, null)
+        }
+        realBoxFactory = TmdbCredentials.boxFactory
+        TmdbCredentials.boxFactory = { TestBox() }
+        realTmdbHttp = TmdbNetwork.http
+        tmdb = FakeTmdb()
+        TmdbNetwork.http = tmdb
     }
 
     @After
     fun tearDown() {
         FilmNetwork.http = realFilmHttp
+        TmdbNetwork.http = realTmdbHttp
+        TmdbCredentials.boxFactory = realBoxFactory
+        Discover.reset()
         database.close()
     }
 
@@ -209,7 +244,7 @@ class MainScreenSmokeTest {
         assertTrue((0 until tabs.tabCount).all { tabs.getTabAt(it)!!.icon != null })
 
         assertTrue(activity.visibleTab() is ForYouFragment)
-        assertTrue(activity.selectTab(1) is FilmLibraryFragment)
+        assertTrue(activity.selectTab(1) is DiscoverFragment)
         assertTrue(activity.selectTab(2) is SubscriptionFragment)
         assertTrue(activity.selectTab(3) is DownloadsTabFragment)
         assertTrue(activity.selectTab(0) is ForYouFragment)
@@ -495,6 +530,18 @@ class MainScreenSmokeTest {
         )
     }
 
+    /** Puts the open-licence film library where the movie discovery usually is. */
+    private fun useFilmLibraryTab() {
+        TabsManager.getManager(application).saveTabs(
+            listOf(
+                Tab.Type.FOR_YOU.tab,
+                Tab.Type.FILM_LIBRARY.tab,
+                Tab.Type.SUBSCRIPTIONS.tab,
+                Tab.Type.DOWNLOADS.tab
+            )
+        )
+    }
+
     @Test
     fun filmLibraryShowsLicensedFilmsWithGenresDetailsAndQualities() {
         val films = listOf(
@@ -503,6 +550,7 @@ class MainScreenSmokeTest {
             film("charade", "Charade", 1963, FilmSource.INTERNET_ARCHIVE, Genre.COMEDY, Genre.MYSTERY)
         )
         store.write("film_library", FilmLibraryCache.serializer(), FilmLibraryCache(now, films))
+        useFilmLibraryTab()
         launch { activity ->
             val fragment = activity.selectTab(1)
             assertTrue(fragment is FilmLibraryFragment)
@@ -552,6 +600,132 @@ class MainScreenSmokeTest {
             assertEquals(2, items.count)
             assertTrue(items.getItem(0).toString().startsWith("480p • MP4 • "))
             assertTrue(items.getItem(1).toString().startsWith("240p • MP4 • "))
+        }
+    }
+
+    // ---------------------------------------------------------- movie discovery
+
+    private fun View.visibilityOf(id: Int): Int = findViewById<View>(id).visibility
+
+    private fun View.chips(): List<TextView> = findViewById<ViewGroup>(R.id.chips).children().map { it as TextView }
+
+    @Test
+    fun moviesAskForATmdbKeyAndStillShowDownloadsWithoutOne() = launch { activity ->
+        val fragment = activity.selectTab(1)
+        assertTrue(fragment is DiscoverFragment)
+        val list = fragment.list()
+        waitFor("the request for a key") {
+            list.layoutNow().getChildAt(0)?.visibilityOf(R.id.setupCard) == View.VISIBLE
+        }
+
+        val header = list.getChildAt(0)
+        assertEquals("New releases", header.text(R.id.sectionTitle))
+        assertEquals("Set up movie discovery", header.text(R.id.setupTitle))
+        assertEquals("Film data: TMDB • Where to watch: JustWatch", header.text(R.id.attributionText))
+        val sections = "New releases, Free movies, Hollywood, Anime movies, Action, Horror, Comedy, Sci-Fi, Watchlist, Downloaded movies"
+        assertEquals(sections, header.chips().joinToString(", ") { it.text })
+        // no films are shown, and nothing was requested, without a key
+        assertEquals(1, list.adapter!!.itemCount)
+        assertTrue(tmdb.calls.isEmpty())
+
+        // the lists kept on the device work without a key
+        header.chips().single { it.text.toString() == "Downloaded movies" }.performClick()
+        waitFor("the downloads") { header.visibilityOf(R.id.emptyText) == View.VISIBLE }
+        assertEquals("Downloaded movies", header.text(R.id.sectionTitle))
+        assertTrue(header.text(R.id.emptyText).startsWith("No downloaded movies yet"))
+        assertEquals(View.GONE, header.visibilityOf(R.id.setupCard))
+        assertEquals(View.GONE, header.visibilityOf(R.id.filterSummary))
+        assertTrue(tmdb.calls.isEmpty())
+    }
+
+    @Test
+    fun moviesListRecentFilmsLabelledWithHowTheyCanBeWatchedAndKeepAWatchlist() {
+        TmdbCredentials.get(application).set(TmdbCredential.parse(TmdbFixtures.V3_KEY)!!)
+        tmdb.json(
+            "discover/movie",
+            TmdbFixtures.pageJson(
+                1,
+                1,
+                TmdbFixtures.movieJson(1, "Free Film"),
+                TmdbFixtures.movieJson(2, "Ad Film"),
+                TmdbFixtures.movieJson(3, "Subscription Film"),
+                TmdbFixtures.movieJson(4, "Rental Film"),
+                TmdbFixtures.movieJson(5, "Unavailable Film")
+            )
+        )
+        val adFilmOffers = mapOf("ads" to listOf("Tubi TV"), "flatrate" to listOf("Netflix"))
+        tmdb.json("movie/1/watch/providers", TmdbFixtures.providersJson(1, "AU", mapOf("free" to listOf("SBS On Demand"))))
+        tmdb.json("movie/2/watch/providers", TmdbFixtures.providersJson(2, "AU", adFilmOffers))
+        tmdb.json("movie/3/watch/providers", TmdbFixtures.providersJson(3, "AU", mapOf("flatrate" to listOf("Stan"))))
+        tmdb.json("movie/4/watch/providers", TmdbFixtures.providersJson(4, "AU", mapOf("rent" to listOf("Apple TV"))))
+        tmdb.json("movie/5/watch/providers", TmdbFixtures.providersJson(5, "AU", emptyMap()))
+        tmdb.json("movie/2", TmdbFixtures.detailsJson(2, "Ad Film", "AU", adFilmOffers))
+
+        launch { activity ->
+            val fragment = activity.selectTab(1)
+            assertTrue(fragment is DiscoverFragment)
+            val list = fragment.list()
+            waitFor("the films") { list.adapter!!.itemCount == 5 }
+            list.layoutNow()
+
+            // every poster says how the film can be watched; the unavailable film is left out
+            val header = list.getChildAt(0)
+            val grid = list.children().drop(1)
+            assertEquals(
+                listOf("Free Film", "Ad Film", "Subscription Film", "Rental Film"),
+                grid.map { it.text(R.id.titleView) }
+            )
+            assertEquals(
+                listOf("Free", "Free with ads", "Subscription", "Rent"),
+                grid.map { it.text(R.id.badgeView) }
+            )
+            assertEquals("SBS On Demand", grid[0].text(R.id.channelView))
+            assertEquals("2025 • ★ 7.4", grid[0].text(R.id.detailsView))
+            assertEquals(View.GONE, header.visibilityOf(R.id.setupCard))
+            assertEquals(
+                "2020 and later • Anything watchable • Recommended",
+                header.text(R.id.filterSummary)
+            )
+            // the key only ever goes to the TMDB API
+            assertTrue(tmdb.calls.all { it.url.startsWith("https://api.themoviedb.org/3/") })
+
+            // details: where to watch, with the cheapest way as the main action
+            grid[1].performClick()
+            idle()
+            val details = ShadowDialog.getLatestDialog() as AlertDialog
+            assertTrue(details.isShowing)
+            waitFor("the details") { details.findViewById<View>(R.id.movieTrailer)!!.visibility == View.VISIBLE }
+            assertEquals("Ad Film", details.findViewById<TextView>(R.id.movieTitle)!!.text.toString())
+            assertEquals("2025 • ★ 7.4 • 2 h 7 min", details.findViewById<TextView>(R.id.movieFacts)!!.text.toString())
+            assertEquals("Free with ads", details.findViewById<TextView>(R.id.movieBadge)!!.text.toString())
+            assertEquals(
+                "Free with ads: Tubi TV\nSubscription: Netflix",
+                details.findViewById<TextView>(R.id.movieOffers)!!.text.toString()
+            )
+            assertEquals(
+                "Watch free with ads on Tubi TV",
+                details.findViewById<TextView>(R.id.movieWatch)!!.text.toString()
+            )
+            // a film of a streaming service is neither played nor downloaded by the app
+            assertEquals(View.VISIBLE, details.findViewById<View>(R.id.movieDownloadNote)!!.visibility)
+            assertEquals(View.GONE, details.findViewById<View>(R.id.movieLocal)!!.visibility)
+
+            // the watchlist
+            val watchlistButton = details.findViewById<TextView>(R.id.movieWatchlist)!!
+            assertEquals("Add to watchlist", watchlistButton.text.toString())
+            watchlistButton.performClick()
+            waitFor("the watchlist") { watchlistButton.text.toString() == "Remove from watchlist" }
+            details.dismiss()
+            idle()
+
+            header.chips().single { it.text.toString() == "Watchlist" }.performClick()
+            waitFor("the watchlist section") {
+                header.text(R.id.sectionTitle) == "Watchlist" && list.adapter!!.itemCount == 2
+            }
+            val saved = list.layoutNow().children().drop(1)
+            assertEquals(listOf("Ad Film"), saved.map { it.text(R.id.titleView) })
+            assertEquals(listOf("Free with ads"), saved.map { it.text(R.id.badgeView) })
+            assertEquals(View.GONE, header.visibilityOf(R.id.filterSummary))
         }
     }
 }

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="12dp">
+
+        <TextView
+            style="@style/DiscoverFilterHeading"
+            android:text="@string/discover_filters_access" />
+
+        <RadioGroup
+            android:id="@+id/accessGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/accessFree"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_filter_free" />
+
+            <RadioButton
+                android:id="@+id/accessSubscription"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_filter_subscription" />
+
+            <RadioButton
+                android:id="@+id/accessAny"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_filter_any" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/DiscoverFilterHeading"
+            android:text="@string/discover_filters_years" />
+
+        <RadioGroup
+            android:id="@+id/yearsGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/yearsLatest"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_years_latest" />
+
+            <RadioButton
+                android:id="@+id/years2020"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_years_2020" />
+
+            <RadioButton
+                android:id="@+id/yearsAny"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_years_any" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/DiscoverFilterHeading"
+            android:text="@string/discover_filters_sort" />
+
+        <RadioGroup
+            android:id="@+id/sortGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/sortRecommended"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_sort_recommended" />
+
+            <RadioButton
+                android:id="@+id/sortPopular"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_sort_popular" />
+
+            <RadioButton
+                android:id="@+id/sortNewest"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_sort_newest" />
+
+            <RadioButton
+                android:id="@+id/sortRating"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_sort_rating" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/DiscoverFilterHeading"
+            android:text="@string/discover_filters_rating" />
+
+        <RadioGroup
+            android:id="@+id/ratingGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/ratingAny"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_rating_any" />
+
+            <RadioButton
+                android:id="@+id/rating6"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_rating_6" />
+
+            <RadioButton
+                android:id="@+id/rating7"
+                style="@style/DiscoverFilterOption"
+                android:text="@string/discover_rating_7" />
+        </RadioGroup>
+    </LinearLayout>
+</ScrollView>

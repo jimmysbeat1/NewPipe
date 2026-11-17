@@ -1021,5 +1021,116 @@
     <string name="film_error_checksum">The downloaded file did not match the checksum published by the source and was discarded. Please try again.</string>
     <string name="film_error_network">Download failed: %s</string>
     <string name="film_player_error">Cannot play this film (%s). Tap to try again.</string>
+
+    <!-- PipeHome: movie discovery (TMDB, where-to-watch data by JustWatch) -->
+    <string name="discover_search_hint">Search movies</string>
+    <string name="discover_section_new">New releases</string>
+    <string name="discover_section_free">Free movies</string>
+    <string name="discover_section_hollywood">Hollywood</string>
+    <string name="discover_section_anime">Anime movies</string>
+    <string name="discover_section_downloaded">Downloaded movies</string>
+    <string name="discover_summary_new">Released in the last 12 months and available to watch in Australia</string>
+    <string name="discover_summary_free">Free or free with ads in Australia, on services such as Tubi, Plex, SBS On Demand and YouTube</string>
+    <string name="discover_summary_hollywood">Popular American films available to watch in Australia</string>
+    <string name="discover_summary_anime">Japanese animated films available to watch in Australia</string>
+    <string name="discover_summary_genre">Available to watch in Australia</string>
+    <string name="discover_summary_watchlist">Saved on this device only</string>
+    <string name="discover_summary_downloaded">Films with an open licence that you downloaded for offline viewing</string>
+    <string name="discover_access_free">Free</string>
+    <string name="discover_access_ads">Free with ads</string>
+    <string name="discover_access_subscription">Subscription</string>
+    <string name="discover_access_rent">Rent</string>
+    <string name="discover_access_buy">Buy</string>
+    <string name="discover_access_none">Not streaming in AU</string>
+    <string name="discover_access_unknown">Not checked</string>
+    <string name="discover_attribution_short">Film data: TMDB • Where to watch: JustWatch</string>
+    <string name="discover_filters">Filters</string>
+    <string name="discover_filters_years">Release year</string>
+    <string name="discover_years_latest">Last three years</string>
+    <string name="discover_years_2020">2020 and later</string>
+    <string name="discover_years_any">Any year</string>
+    <string name="discover_filters_access">How you can watch</string>
+    <string name="discover_filter_free">Free only</string>
+    <string name="discover_filter_subscription">Free or subscription</string>
+    <string name="discover_filter_any">Anything watchable</string>
+    <string name="discover_filters_sort">Sort by</string>
+    <string name="discover_sort_recommended">Recommended</string>
+    <string name="discover_sort_popular">Most popular</string>
+    <string name="discover_sort_newest">Newest</string>
+    <string name="discover_sort_rating">Top rated</string>
+    <string name="discover_filters_rating">Minimum TMDB score</string>
+    <string name="discover_rating_any">Any score</string>
+    <string name="discover_rating_6">6 or higher</string>
+    <string name="discover_rating_7">7 or higher</string>
+    <string name="discover_rating_at_least">★ %d+</string>
+    <string name="discover_filters_reset">Reset</string>
+    <string name="discover_filters_apply">Apply</string>
+    <string name="discover_setup_title">Set up movie discovery</string>
+    <string name="discover_setup_message">New releases, posters, ratings and where each film can be watched in Australia come from TMDB. TMDB requires every app user to use their own free API key. Your key is stored encrypted on this device and is only sent to TMDB.</string>
+    <string name="discover_setup_invalid_title">TMDB key not accepted</string>
+    <string name="discover_setup_add_key">Enter TMDB key</string>
+    <string name="discover_setup_get_key">Get a free key</string>
+    <string name="discover_setup_library">Browse open-licence films</string>
+    <string name="discover_problem_no_key">A TMDB key is needed to load movies.</string>
+    <string name="discover_problem_invalid_key">TMDB rejected the saved key. Enter a valid key to load movies.</string>
+    <string name="discover_problem_rate_limited">TMDB is receiving too many requests. Please try again in a moment.</string>
+    <string name="discover_problem_network">Could not reach TMDB. Check your connection and pull down to try again.</string>
+    <string name="discover_problem_service">TMDB returned an unexpected answer. Pull down to try again.</string>
+    <string name="discover_showing_saved">Showing the list that was saved earlier.</string>
+    <string name="discover_empty">No movies match these filters and can be watched in Australia. Try other filters.</string>
+    <string name="discover_empty_search">No matching movies that can be watched in Australia with your filters</string>
+    <string name="discover_empty_watchlist">Your watchlist is empty. Open a movie and choose “Add to watchlist”.</string>
+    <string name="discover_empty_downloads">No downloaded movies yet. Only films with an open licence can be downloaded; you find them under “Open-licence film library” in the menu.</string>
+    <plurals name="discover_hidden">
+        <item quantity="one">%d more match is not shown because it cannot be watched in Australia with your filters.</item>
+        <item quantity="other">%d more matches are not shown because they cannot be watched in Australia with your filters.</item>
+    </plurals>
+    <string name="discover_menu_key">TMDB key</string>
+    <string name="discover_menu_library">Open-licence film library</string>
+    <string name="discover_menu_about">About movie data</string>
+    <string name="tab_film_library">Open-licence films</string>
+    <string name="discover_about_message">This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+Film titles, descriptions, posters, release dates, genres and scores come from TMDB (The Movie Database).
+
+Where a film can be watched in Australia, and whether that is free, free with ads, part of a subscription, a rental or a purchase, is data supplied by JustWatch through TMDB. It can be out of date or incomplete; the provider has the final word on price and availability.
+
+PipeHome does not host or stream these films. It sends you to the official provider, and it never bypasses subscriptions, payments or copy protection. Inside PipeHome you can play trailers, films that distributors publish on YouTube, and films with an open licence. Only films with an open licence can be downloaded.
+
+Your watchlist, filters and TMDB key stay on this device. Requests go to api.themoviedb.org and image.tmdb.org and carry your key, never any other identifier.</string>
+    <string name="discover_about_tmdb">TMDB website</string>
+    <string name="discover_about_justwatch">JustWatch website</string>
+    <string name="discover_key_title">TMDB key</string>
+    <string name="discover_key_message">Paste your TMDB “API key” or “API read access token”. You get one for free in your TMDB account settings under API. It is stored encrypted on this device, is left out of backups and settings exports, and is only sent to TMDB.</string>
+    <string name="discover_key_hint">API key or read access token</string>
+    <string name="discover_key_saved">A key is saved on this device.</string>
+    <string name="discover_key_remove">Remove saved key</string>
+    <string name="discover_key_removed">TMDB key removed</string>
+    <string name="discover_key_check">Check and save</string>
+    <string name="discover_key_checking">Checking the key with TMDB…</string>
+    <string name="discover_key_format">This is neither a TMDB API key (32 letters and digits) nor an API read access token.</string>
+    <string name="discover_key_rejected">TMDB did not accept this key.</string>
+    <string name="discover_key_unreachable">Could not reach TMDB to check the key. Check your connection and try again.</string>
+    <string name="discover_key_accepted">TMDB key saved</string>
+    <string name="discover_key_not_persistent">TMDB accepted the key, but this device could not encrypt it. It is kept until the app is closed and is not written to storage.</string>
+    <string name="discover_detail_runtime">%1$d h %2$d min</string>
+    <string name="discover_detail_where">Where to watch in Australia</string>
+    <string name="discover_detail_none">Not available to stream, rent or buy in Australia according to JustWatch.</string>
+    <string name="discover_detail_loading">Checking where to watch…</string>
+    <string name="discover_detail_failed">Could not load the latest details. The information shown may be out of date.</string>
+    <string name="discover_watch_free">Watch free on %s</string>
+    <string name="discover_watch_ads">Watch free with ads on %s</string>
+    <string name="discover_watch_subscription">Watch on %s (subscription)</string>
+    <string name="discover_watch_rent">Rent from %s</string>
+    <string name="discover_watch_buy">Buy from %s</string>
+    <string name="discover_watch_note_direct">Opens the search of %s for this title. PipeHome cannot play this film itself.</string>
+    <string name="discover_watch_note_page">Opens TMDB’s where-to-watch page in your browser, which links to the official provider. PipeHome cannot play this film itself.</string>
+    <string name="discover_trailer">Play trailer in PipeHome</string>
+    <string name="discover_local_film">Watch or download in PipeHome (open licence)</string>
+    <string name="discover_local_youtube">Watch in PipeHome • published by %s</string>
+    <string name="discover_download_note">Download is not offered: the providers do not license this film for offline copies outside their own apps.</string>
+    <string name="discover_view_tmdb">View on TMDB</string>
+    <string name="discover_checked">Film information from TMDB. Where-to-watch data from JustWatch, checked %s.</string>
+    <string name="discover_watchlist_failed">Could not save the watchlist</string>
 </resources>
 

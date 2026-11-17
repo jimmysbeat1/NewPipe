@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.schabi.newpipe.download.DownloadsTabFragment
 import org.schabi.newpipe.fragments.MainFragment
 import org.schabi.newpipe.local.subscription.SubscriptionFragment
-import org.schabi.newpipe.movies.library.FilmLibraryFragment
+import org.schabi.newpipe.movies.discover.DiscoverFragment
 import org.schabi.newpipe.recommend.ui.ForYouFragment
 import us.shandian.giga.ui.fragment.MissionsFragment
 
@@ -113,8 +113,8 @@ class MainTabsTest {
 
             scenario.selectTab(1)
             scenario.onActivity { activity ->
-                val view = activity.visibleTab<FilmLibraryFragment>().requireView()
-                // the header with the search box is always part of the list
+                val view = activity.visibleTab<DiscoverFragment>().requireView()
+                // the header with the search box is always part of the list, also without a TMDB key
                 val list = view.findViewById<RecyclerView>(R.id.itemsList)
                 assertThat(list.adapter!!.itemCount).isGreaterThanOrEqualTo(1)
             }
@@ -149,7 +149,7 @@ class MainTabsTest {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             scenario.selectTab(1)
             scenario.onActivity { activity ->
-                val view = activity.visibleTab<FilmLibraryFragment>().requireView()
+                val view = activity.visibleTab<DiscoverFragment>().requireView()
                 view.findViewById<RecyclerView>(R.id.itemsList).apply {
                     measure(
                         View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_discover_refresh"
+        android:orderInCategory="10"
+        android:title="@string/movies_refresh"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_discover_filters"
+        android:orderInCategory="11"
+        android:title="@string/discover_filters"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_discover_key"
+        android:orderInCategory="12"
+        android:title="@string/discover_menu_key"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_discover_library"
+        android:orderInCategory="13"
+        android:title="@string/discover_menu_library"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_discover_youtube"
+        android:orderInCategory="14"
+        android:title="@string/tab_youtube_movies"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_discover_about"
+        android:orderInCategory="15"
+        android:title="@string/discover_menu_about"
+        app:showAsAction="never" />
+</menu>

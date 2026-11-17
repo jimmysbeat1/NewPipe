@@ -30,6 +30,7 @@ import org.schabi.newpipe.local.history.StatisticsPlaylistFragment;
 import org.schabi.newpipe.local.playlist.LocalPlaylistFragment;
 import org.schabi.newpipe.local.subscription.SubscriptionFragment;
 import org.schabi.newpipe.movies.MoviesFragment;
+import org.schabi.newpipe.movies.discover.DiscoverFragment;
 import org.schabi.newpipe.movies.library.FilmLibraryFragment;
 import org.schabi.newpipe.recommend.ui.ForYouFragment;
 import org.schabi.newpipe.util.KioskTranslator;
@@ -173,7 +174,8 @@ public abstract class Tab {
         FOR_YOU(new ForYouTab()),
         MOVIES(new MoviesTab()),
         DOWNLOADS(new DownloadsTab()),
-        YOUTUBE_MOVIES(new YoutubeMoviesTab());
+        YOUTUBE_MOVIES(new YoutubeMoviesTab()),
+        FILM_LIBRARY(new FilmLibraryTab());
 
         private final Tab tab;
 
@@ -791,6 +793,35 @@ public abstract class Tab {
         @Override
         public String getTabName(final Context context) {
             return context.getString(R.string.tab_movies);
+        }
+
+        @DrawableRes
+        @Override
+        public int getTabIconRes(final Context context) {
+            return R.drawable.ic_movie;
+        }
+
+        @Override
+        public DiscoverFragment getFragment(final Context context) {
+            return new DiscoverFragment();
+        }
+    }
+
+    /**
+     * The films with an open licence, which can be downloaded. This was the Movies tab before
+     * the movie discovery replaced it; it is still reachable from the menu of that tab.
+     */
+    public static class FilmLibraryTab extends Tab {
+        public static final int ID = 104;
+
+        @Override
+        public int getTabId() {
+            return ID;
+        }
+
+        @Override
+        public String getTabName(final Context context) {
+            return context.getString(R.string.tab_film_library);
         }
 
         @DrawableRes
