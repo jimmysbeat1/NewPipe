@@ -62,9 +62,9 @@ object DiscoverFormat {
 
     /** All offers, one line per way of watching, e.g. "Free with ads: Tubi TV, 7plus". */
     fun offers(context: Context, availability: Availability): String {
-        return Access.entries.mapNotNull { access ->
-            val names = availability.providers(access)
-            if (names.isEmpty()) null else access(context, access) + ": " + names.joinToString(", ")
+        return Access.entries.mapNotNull { level ->
+            val names = availability.providers(level)
+            if (names.isEmpty()) null else access(context, level) + ": " + names.joinToString(", ")
         }.joinToString("\n")
     }
 
